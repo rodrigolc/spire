@@ -161,7 +161,7 @@ func (s *sigstoreImpl) ExtractSelectorsFromSignatures(signatures []oci.Signature
 // SelectorValuesFromSignature extracts selectors from a signature.
 // returns a list of selectors.
 func (s *sigstoreImpl) SelectorValuesFromSignature(signature oci.Signature, containerID string) *SelectorsFromSignatures {
-	var selectorsFromSignatures *SelectorsFromSignatures = nil
+	var selectorsFromSignatures *SelectorsFromSignatures
 	subject, err := getSignatureSubject(signature)
 
 	if err != nil {
