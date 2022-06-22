@@ -1377,7 +1377,6 @@ func TestSigstoreimpl_SelectorValuesFromSignature(t *testing.T) {
 				Content:        "MEUCIQCyem8Gcr0sPFMP7fTXazCN57NcN5+MjxJw9Oo0x2eM+AIgdgBP96BO1Te/NdbjHbUeb0BUye6deRgVtQEv5No5smA=",
 				LogID:          "samplelogID",
 				IntegratedTime: "12345",
-				Verified:       true,
 			},
 		},
 		{
@@ -1444,7 +1443,6 @@ func TestSigstoreimpl_SelectorValuesFromSignature(t *testing.T) {
 				Content:        "MEUCIQCyem8Gcr0sPFMP7fTXazCN57NcN5+MjxJw9Oo0x2eM+AIgdgBP96BO1Te/NdbjHbUeb0BUye6deRgVtQEv5No5smA=",
 				LogID:          "samplelogID",
 				IntegratedTime: "12345",
-				Verified:       true,
 			},
 		},
 		{
@@ -1471,8 +1469,7 @@ func TestSigstoreimpl_SelectorValuesFromSignature(t *testing.T) {
 			want: SelectorsFromSignatures{
 				Subject:        "spirex@example.com",
 				LogID:          "samplelogID",
-				IntegratedTime: "12345",
-				Verified:       true},
+				IntegratedTime: "12345"},
 		},
 
 		{
@@ -1489,8 +1486,7 @@ func TestSigstoreimpl_SelectorValuesFromSignature(t *testing.T) {
 			containerID: "555555",
 			want: SelectorsFromSignatures{
 
-				Subject:  "spirex@example.com",
-				Verified: true,
+				Subject: "spirex@example.com",
 			},
 		},
 	}

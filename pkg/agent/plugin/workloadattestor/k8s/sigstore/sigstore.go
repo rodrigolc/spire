@@ -33,7 +33,7 @@ const (
 type Sigstore interface {
 	AttestContainerSignatures(ctx context.Context, status *corev1.ContainerStatus) ([]string, error)
 	FetchImageSignatures(ctx context.Context, imageName string) ([]oci.Signature, error)
-	SelectorValuesFromSignature(oci.Signature, string) SelectorsFromSignatures
+	SelectorValuesFromSignature(oci.Signature, string) *SelectorsFromSignatures
 	ExtractSelectorsFromSignatures(signatures []oci.Signature, containerID string) []SelectorsFromSignatures
 	ShouldSkipImage(imageID string) (bool, error)
 	AddSkippedImage(imageID []string)
@@ -80,7 +80,6 @@ type SelectorsFromSignatures struct {
 	Content        string
 	LogID          string
 	IntegratedTime string
-	Verified       bool
 }
 
 func New(cache Cache, logger hclog.Logger) Sigstore {
@@ -152,8 +151,8 @@ func (s *sigstoreImpl) ExtractSelectorsFromSignatures(signatures []oci.Signature
 	for _, sig := range signatures {
 		// verify which subject
 		sigSelectors := s.SelectorValuesFromSignature(sig, containerID)
-		if sigSelectors.Verified {
-			selectors = append(selectors, sigSelectors)
+		if sigSelectors != nil {
+			selectors = append(selectors, *sigSelectors)
 		}
 	}
 	return selectors
@@ -161,8 +160,8 @@ func (s *sigstoreImpl) ExtractSelectorsFromSignatures(signatures []oci.Signature
 
 // SelectorValuesFromSignature extracts selectors from a signature.
 // returns a list of selectors.
-func (s *sigstoreImpl) SelectorValuesFromSignature(signature oci.Signature, containerID string) SelectorsFromSignatures {
-	var selectorsFromSignatures SelectorsFromSignatures
+func (s *sigstoreImpl) SelectorValuesFromSignature(signature oci.Signature, containerID string) *SelectorsFromSignatures {
+	var selectorsFromSignatures *SelectorsFromSignatures = nil
 	subject, err := getSignatureSubject(signature)
 
 	if err != nil {
@@ -171,18 +170,19 @@ func (s *sigstoreImpl) SelectorValuesFromSignature(signature oci.Signature, cont
 	}
 
 	if subject == "" {
-		s.logger.Error("error getting signature subject: empty subject")
+		s.logger.Error("Error getting signature subject:", "error", errors.New("empty subject"))
 		return selectorsFromSignatures
 	}
 
 	if s.allowListEnabled {
 		if _, ok := s.subjectAllowList[subject]; !ok {
 			return selectorsFromSignatures
+			s.logger.Info("Subject not in allow-list", "subject", subject)
 		}
 	}
 
+	selectorsFromSignatures = &SelectorsFromSignatures{}
 	selectorsFromSignatures.Subject = subject
-	selectorsFromSignatures.Verified = true
 
 	bundle, err := signature.Bundle()
 	if err != nil {
