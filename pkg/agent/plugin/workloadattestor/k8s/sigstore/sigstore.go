@@ -176,8 +176,8 @@ func (s *sigstoreImpl) SelectorValuesFromSignature(signature oci.Signature, cont
 
 	if s.allowListEnabled {
 		if _, ok := s.subjectAllowList[subject]; !ok {
-			return selectorsFromSignatures
 			s.logger.Info("Subject not in allow-list", "subject", subject)
+			return selectorsFromSignatures
 		}
 	}
 
@@ -186,20 +186,20 @@ func (s *sigstoreImpl) SelectorValuesFromSignature(signature oci.Signature, cont
 
 	bundle, err := signature.Bundle()
 	if err != nil {
-		s.logger.Error("error getting signature bundle: ", err.Error())
+		s.logger.Error("error getting signature bundle", "error", err)
+		return selectorsFromSignatures
+	}
+	sigContent, err := getBundleSignatureContent(bundle)
+	if err != nil {
+		s.logger.Error("error getting signature content", "error", err)
 	} else {
-		sigContent, err := getBundleSignatureContent(bundle)
-		if err != nil {
-			s.logger.Error("error getting signature content", "error", err)
-		} else {
-			selectorsFromSignatures.Content = sigContent
-		}
-		if bundle.Payload.LogID != "" {
-			selectorsFromSignatures.LogID = bundle.Payload.LogID
-		}
-		if bundle.Payload.IntegratedTime != 0 {
-			selectorsFromSignatures.IntegratedTime = strconv.FormatInt(bundle.Payload.IntegratedTime, 10)
-		}
+		selectorsFromSignatures.Content = sigContent
+	}
+	if bundle.Payload.LogID != "" {
+		selectorsFromSignatures.LogID = bundle.Payload.LogID
+	}
+	if bundle.Payload.IntegratedTime != 0 {
+		selectorsFromSignatures.IntegratedTime = strconv.FormatInt(bundle.Payload.IntegratedTime, 10)
 	}
 	return selectorsFromSignatures
 }
