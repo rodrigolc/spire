@@ -338,7 +338,7 @@ func (p *Plugin) Configure(ctx context.Context, req *configv1.ConfigureRequest) 
 		return nil, err
 	}
 	if p.sigstore != nil {
-		if err := configureSigstore(c, p.sigstore); err != nil {
+		if err := p.configureSigstore(c, p.sigstore); err != nil {
 			return nil, err
 		}
 	}
@@ -347,7 +347,10 @@ func (p *Plugin) Configure(ctx context.Context, req *configv1.ConfigureRequest) 
 	return &configv1.ConfigureResponse{}, nil
 }
 
-func configureSigstore(config *k8sConfig, sigstore sigstore.Sigstore) error {
+func (p *Plugin) configureSigstore(config *k8sConfig, sigstore sigstore.Sigstore) error {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
 	// Configure sigstore settings
 	sigstore.ClearSkipList()
 	imageIDList := []string{}
