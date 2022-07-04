@@ -766,9 +766,19 @@ func (s *Suite) TestConfigure() {
 			assert.Equal(t, testCase.config.MaxPollAttempts, c.MaxPollAttempts)
 			assert.Equal(t, testCase.config.PollRetryInterval, c.PollRetryInterval)
 			assert.Equal(t, testCase.config.ReloadInterval, c.ReloadInterval)
+
 			assert.Equal(t, testCase.config.SkippedImages, c.SkippedImages)
+			for _, sImage := range testCase.config.SkippedImages {
+				assert.Contains(t, p.sigstore.(*sigstoreMock).skippedImages, sImage)
+			}
+
 			assert.Equal(t, testCase.config.AllowedSubjectListEnabled, c.AllowedSubjectListEnabled)
+			assert.Equal(t, testCase.config.AllowedSubjectListEnabled, p.sigstore.(*sigstoreMock).allowedSubjectListEnabled)
+
 			assert.Equal(t, testCase.config.AllowedSubjects, c.AllowedSubjects)
+			for _, sSubject := range testCase.config.AllowedSubjects {
+				assert.Contains(t, p.sigstore.(*sigstoreMock).allowedSubjects, sSubject)
+			}
 			assert.Equal(t, testCase.config.RekorURL, c.RekorURL)
 		})
 	}
@@ -808,10 +818,13 @@ func (signature) Bundle() (*bundle.RekorBundle, error) {
 type sigstoreMock struct {
 	selectors []sigstore.SelectorsFromSignatures
 
-	sigs                []oci.Signature
-	skipSigs            bool
-	skippedSigSelectors []string
-	returnError         error
+	sigs                      []oci.Signature
+	skipSigs                  bool
+	skippedSigSelectors       []string
+	returnError               error
+	skippedImages             map[string]bool
+	allowedSubjects           map[string]bool
+	allowedSubjectListEnabled bool
 
 	rekorURL string
 }
@@ -836,19 +849,33 @@ func (s *sigstoreMock) ShouldSkipImage(imageID string) (bool, error) {
 	return s.skipSigs, s.returnError
 }
 
-func (s *sigstoreMock) AddSkippedImage([]string) {
+func (s *sigstoreMock) AddSkippedImage(images []string) {
+	if s.skippedImages == nil {
+		s.skippedImages = make(map[string]bool)
+	}
+	for _, imageID := range images {
+		s.skippedImages[imageID] = true
+	}
 }
 func (s *sigstoreMock) ClearSkipList() {
+	s.skippedImages = nil
 }
 
 func (s *sigstoreMock) AddAllowedSubject(subject string) {
+	if s.allowedSubjects == nil {
+		s.allowedSubjects = make(map[string]bool)
+	}
+	s.allowedSubjects[subject] = true
 }
 
 func (s *sigstoreMock) ClearAllowedSubjects() {
+	s.allowedSubjects = nil
 }
 
 func (s *sigstoreMock) EnableAllowSubjectList(flag bool) {
+	s.allowedSubjectListEnabled = flag
 }
+
 func (s *sigstoreMock) AttestContainerSignatures(ctx context.Context, status *corev1.ContainerStatus) ([]string, error) {
 	if s.skipSigs {
 		return s.skippedSigSelectors, nil
