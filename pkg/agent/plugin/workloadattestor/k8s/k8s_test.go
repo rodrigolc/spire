@@ -880,6 +880,9 @@ func (s *sigstoreMock) AttestContainerSignatures(ctx context.Context, status *co
 	if s.skipSigs {
 		return s.skippedSigSelectors, nil
 	}
+	if s.returnError != nil {
+		return nil, s.returnError
+	}
 	var selectorsString []string
 	for _, selector := range s.selectors {
 		if selector.Subject != "" {
@@ -896,7 +899,7 @@ func (s *sigstoreMock) AttestContainerSignatures(ctx context.Context, status *co
 		}
 		selectorsString = append(selectorsString, "sigstore-validation:passed")
 	}
-	return selectorsString, s.returnError
+	return selectorsString, nil
 }
 
 func (s *sigstoreMock) SetRekorURL(url string) error {
