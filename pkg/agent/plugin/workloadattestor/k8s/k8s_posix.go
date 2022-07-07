@@ -241,7 +241,7 @@ func (p *Plugin) Attest(ctx context.Context, req *workloadattestorv1.AttestReque
 			case containerInPod:
 				selectors := getSelectorValuesFromPodInfo(&item, status)
 				if p.config.EnableSigstore {
-					log.Debug("Attemping to get signature info from image", status.Name)
+					log.Debug("Attemping to get signature info from image", "name", status.Name)
 					sigstoreSelectors, err := p.sigstore.AttestContainerSignatures(ctx, status)
 					if err != nil {
 						log.Error("Error retrieving signature payload: ", "error", err)
