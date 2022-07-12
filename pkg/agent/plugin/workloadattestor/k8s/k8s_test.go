@@ -662,7 +662,10 @@ func (s *Suite) TestConfigure() {
 		{
 			name: "secure defaults with skipped images for sigstore",
 			hcl: `
-				sigstore.skip_signature_verification_image_list = ["sha:image1hash","sha:image2hash"]
+				experimental = {  
+					enable_sigstore = true,
+					sigstore.skip_signature_verification_image_list = ["sha:image1hash","sha:image2hash"]
+				}
 			`,
 			config: &config{
 				VerifyKubelet:     true,
@@ -680,8 +683,11 @@ func (s *Suite) TestConfigure() {
 		{
 			name: "secure defaults with allowed subjects for sigstore",
 			hcl: `
-				sigstore.enable_allowed_subjects_list = true,
-				sigstore.allowed_subjects_list = ["spirex@example.com","spirex1@example.com"]
+				experimental = {  
+					enable_sigstore = true,
+					sigstore.enable_allowed_subjects_list = true,
+					sigstore.allowed_subjects_list = ["spirex@example.com","spirex1@example.com"]
+				}
 			`,
 			config: &config{
 				VerifyKubelet:             true,
@@ -697,7 +703,10 @@ func (s *Suite) TestConfigure() {
 		{
 			name: "secure defaults with rekor URL",
 			hcl: `
-				sigstore.rekor_url = "https://rekor.example.com"
+				experimental = {  
+					enable_sigstore = true,
+					sigstore.rekor_url = "https://rekor.example.com"
+				}
 			`,
 			config: &config{
 				VerifyKubelet:     true,
@@ -712,7 +721,10 @@ func (s *Suite) TestConfigure() {
 		{
 			name: "secure defaults with empty rekor URL",
 			hcl: `
-				sigstore.rekor_url = "inva{{{lid}"
+				experimental = { 
+					enable_sigstore = true,
+					sigstore.rekor_url = "inva{{{lid}"
+				}
 			`,
 			sigstoreError: errors.New("error parsing rekor URI"),
 			config:        nil,
@@ -994,6 +1006,9 @@ func (s *Suite) loadInsecurePlugin() workloadattestor.WorkloadAttestor {
 		kubelet_read_only_port = %d
 		max_poll_attempts = 5
 		poll_retry_interval = "1s"
+		experimental = {
+			enable_sigstore = true	
+		}
 `, s.kubeletPort()))
 }
 
@@ -1064,6 +1079,9 @@ func (s *Suite) loadSecurePlugin(extraConfig string) workloadattestor.WorkloadAt
 	return s.loadPlugin(fmt.Sprintf(`
 		kubelet_secure_port = %d
 		%s
+		experimental = {
+			enable_sigstore = true	
+		}
 	`, s.kubeletPort(), extraConfig))
 }
 

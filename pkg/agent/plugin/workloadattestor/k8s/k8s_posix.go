@@ -117,6 +117,14 @@ type HCLConfig struct {
 	// from the disk.
 	ReloadInterval string `hcl:"reload_interval"`
 
+	// Experimental enables experimental features.
+	Experimental ExperimentalK8SConfig `hcl:"experimental,omitempty"`
+}
+
+type ExperimentalK8SConfig struct {
+
+	// EnableK8SWorkloadAttestor enables the K8S workload attestor.
+	EnableSigstore bool `hcl:"enable_sigstore"`
 	// RekorURL is the URL for the rekor server to use to verify signatures and public keys
 	RekorURL string `hcl:"sigstore.rekor_url"`
 
@@ -144,9 +152,9 @@ type k8sConfig struct {
 	NodeName                string
 	ReloadInterval          time.Duration
 
-	RekorURL      string
-	SkippedImages []string
-
+	EnableSigstore            bool
+	RekorURL                  string
+	SkippedImages             []string
 	AllowedSubjectListEnabled bool
 	AllowedSubjects           []string
 
@@ -225,12 +233,14 @@ func (p *Plugin) Attest(ctx context.Context, req *workloadattestorv1.AttestReque
 			switch lookup {
 			case containerInPod:
 				selectors := getSelectorValuesFromPodInfo(&item, status)
-				log.Debug("Attemping to get signature info from image", status.Name)
-				sigstoreSelectors, err := p.sigstore.AttestContainerSignatures(ctx, status)
-				if err != nil {
-					log.Error("Error retrieving signature payload: ", "error", err)
-				} else {
-					selectors = append(selectors, sigstoreSelectors...)
+				if p.config.EnableSigstore {
+					log.Debug("Attemping to get signature info from image", status.Name)
+					sigstoreSelectors, err := p.sigstore.AttestContainerSignatures(ctx, status)
+					if err != nil {
+						log.Error("Error retrieving signature payload: ", "error", err)
+					} else {
+						selectors = append(selectors, sigstoreSelectors...)
+					}
 				}
 
 				return &workloadattestorv1.AttestResponse{
@@ -329,17 +339,20 @@ func (p *Plugin) Configure(ctx context.Context, req *configv1.ConfigureRequest) 
 		NodeName:                nodeName,
 		ReloadInterval:          reloadInterval,
 
-		RekorURL:                  config.RekorURL,
-		SkippedImages:             config.SkippedImages,
-		AllowedSubjectListEnabled: config.AllowedSubjectListEnabled,
-		AllowedSubjects:           config.AllowedSubjects,
+		EnableSigstore:            config.Experimental.EnableSigstore,
+		RekorURL:                  config.Experimental.RekorURL,
+		SkippedImages:             config.Experimental.SkippedImages,
+		AllowedSubjectListEnabled: config.Experimental.AllowedSubjectListEnabled,
+		AllowedSubjects:           config.Experimental.AllowedSubjects,
 	}
 	if err := p.reloadKubeletClient(c); err != nil {
 		return nil, err
 	}
-	if p.sigstore != nil {
-		if err := p.configureSigstore(c, p.sigstore); err != nil {
-			return nil, err
+	if p.config.EnableSigstore {
+		if p.sigstore != nil {
+			if err := p.configureSigstore(c, p.sigstore); err != nil {
+				return nil, err
+			}
 		}
 	}
 	// Set the config
