@@ -42,10 +42,22 @@ server name validation against the kubelet certificate.
 | `private_key_path` | The path on disk to client key used for kubelet authentication |
 | `node_name_env` | The environment variable used to obtain the node name. Defaults to `MY_NODE_NAME`. |
 | `node_name` | The name of the node. Overrides the value obtained by the environment variable specified by `node_name_env`. |
+| `experimental` | experimental options, described below. Currently only contain sigstore options. Defaults to empty. |
+
+Experimental options:  
+| Configuration | Description |
+| ------------- | ----------- |
+| `enable_sigstore`| Enables usage of Sigstore signature validation. Defaults to `false`|
+| `sigstore`| Sigstore options. Options described below. |
+
+Sigstore options:  
+| Configuration | Description |
+| ------------- | ----------- |
 | `skip_signature_verification_image_list`| The list of images, described as digest hashes, that should be skipped in signature verification. |
 | `enable_allowed_subjects_list`| Enables a list of allowed subjects that are trusted and are allowed to sign container images artificats.|
 | `allowed_subjects_list`| The list of allowed subjects enabled by `enable_allowed_subjects_list` each entry represents subject e-mail. |
 | `rekor_url` | The URL for the rekor STL Server to use with cosign.  |
+
 
 ### Sigstore workload attestor for SPIRE
 
