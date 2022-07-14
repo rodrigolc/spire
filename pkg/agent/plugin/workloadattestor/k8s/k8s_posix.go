@@ -348,7 +348,7 @@ func (p *Plugin) Configure(ctx context.Context, req *configv1.ConfigureRequest) 
 	if err := p.reloadKubeletClient(c); err != nil {
 		return nil, err
 	}
-	if p.config.EnableSigstore {
+	if c.EnableSigstore {
 		if p.sigstore != nil {
 			if err := p.configureSigstore(c, p.sigstore); err != nil {
 				return nil, err
