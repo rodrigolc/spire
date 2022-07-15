@@ -729,9 +729,6 @@ func (s *Suite) TestConfigure() {
 			plugintest.Load(s.T(), builtin(p), nil,
 				plugintest.Configure(testCase.hcl),
 				plugintest.CaptureConfigureError(&err))
-			if testCase.sigstoreError != nil {
-				p.sigstore.(*sigstoreMock).returnError = nil
-			}
 			if testCase.err != "" {
 				s.AssertErrorContains(err, testCase.err)
 				return
