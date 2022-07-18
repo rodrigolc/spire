@@ -437,6 +437,22 @@ func (s *Suite) TestAttestAgainstNodeOverride() {
 	s.Require().Empty(selectors)
 }
 
+func (s *Suite) TestLogger() {
+	s.startInsecureKubelet()
+
+	p := s.newPlugin()
+	plugintest.Load(s.T(), builtin(p), nil)
+
+	newLog := hclog.New(&hclog.LoggerOptions{
+		Name: "new_test_logger",
+	})
+	p.SetLogger(newLog)
+
+	s.Require().Same(newLog, p.log)
+	s.Require().Contains(p.log.Name(), newLog.Name())
+	s.Require().Contains(p.log.Name(), "new_test_log")
+}
+
 func (s *Suite) TestConfigure() {
 	s.generateCerts("")
 
@@ -865,12 +881,14 @@ type sigstoreMock struct {
 	skippedImages             map[string]bool
 	allowedSubjects           map[string]bool
 	allowedSubjectListEnabled bool
+	log                       hclog.Logger
 
 	rekorURL string
 }
 
 // SetLogger implements sigstore.Sigstore
-func (*sigstoreMock) SetLogger(logger hclog.Logger) {
+func (s *sigstoreMock) SetLogger(logger hclog.Logger) {
+	s.log = logger
 }
 
 func (s *sigstoreMock) FetchImageSignatures(ctx context.Context, imageName string) ([]oci.Signature, error) {
@@ -1032,6 +1050,7 @@ func (s *Suite) loadPlugin(configuration string) workloadattestor.WorkloadAttest
 	plugintest.Load(s.T(), builtin(s.newPlugin()), v1,
 		plugintest.Configure(configuration),
 	)
+
 	return v1
 }
 
