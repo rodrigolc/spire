@@ -398,8 +398,8 @@ func (p *Plugin) configureSigstore(config *k8sConfig, sigstore sigstore.Sigstore
 		}
 	}
 	if config.RekorURL != "" {
-		if err := sigstore.SetRekorURL(config.RekorURL); err != nil {
-			return err
+		if err := p.sigstore.SetRekorURL(config.RekorURL); err != nil {
+			return status.Errorf(codes.InvalidArgument, "failed to parse Rekor URL: %v", err)
 		}
 	}
 	return nil
