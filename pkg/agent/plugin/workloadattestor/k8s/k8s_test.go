@@ -730,9 +730,36 @@ func (s *Suite) TestConfigure() {
 					}
 				}
 			`,
-			sigstoreError: errors.New("error parsing rekor URI"),
+			sigstoreError: errors.New("rekor URL is empty"),
 			config:        nil,
-			err:           "error parsing rekor URI",
+			err:           "failed to parse Rekor URL: rekor URL is empty",
+		},
+		{
+			name: "secure defaults for failed parsing rekor URI",
+			hcl: `
+				sigstore.rekor_url = "inva{{{lid}"
+			`,
+			sigstoreError: errors.New("failed parsing rekor URI"),
+			config:        nil,
+			err:           "failed to parse Rekor URL: failed parsing rekor URI",
+		},
+		{
+			name: "secure defaults for invalid rekor URL Scheme",
+			hcl: `
+				sigstore.rekor_url = "inva{{{lid}"
+			`,
+			sigstoreError: errors.New("invalid rekor URL Scheme"),
+			config:        nil,
+			err:           "failed to parse Rekor URL: invalid rekor URL Scheme",
+		},
+		{
+			name: "secure defaults for invalid rekor URL Host",
+			hcl: `
+				sigstore.rekor_url = "inva{{{lid}"
+			`,
+			sigstoreError: errors.New("invalid rekor URL Host"),
+			config:        nil,
+			err:           "failed to parse Rekor URL: invalid rekor URL Host",
 		},
 	}
 
@@ -916,6 +943,9 @@ func (s *sigstoreMock) AttestContainerSignatures(ctx context.Context, status *co
 }
 
 func (s *sigstoreMock) SetRekorURL(url string) error {
+	if s.returnError != nil {
+		return s.returnError
+	}
 	s.rekorURL = url
 	return s.returnError
 }
