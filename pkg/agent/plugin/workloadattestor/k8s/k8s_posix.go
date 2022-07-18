@@ -118,24 +118,31 @@ type HCLConfig struct {
 	ReloadInterval string `hcl:"reload_interval"`
 
 	// Experimental enables experimental features.
-	Experimental ExperimentalK8SConfig `hcl:"experimental,omitempty"`
+	Experimental *ExperimentalK8SConfig `hcl:"experimental,omitempty"`
 }
 
 type ExperimentalK8SConfig struct {
 
-	// EnableK8SWorkloadAttestor enables the K8S workload attestor.
-	EnableSigstore bool `hcl:"enable_sigstore"`
+	// Experimental enables experimental features.
+	Sigstore *ExperimentalSigstoreConfig `hcl:"sigstore,omitempty"`
+}
+
+type ExperimentalSigstoreConfig struct {
+
+	// // EnableSigstore enables sigstore signature checking.
+	// EnableSigstore bool `hcl:"check_signature_enabled"`
+
 	// RekorURL is the URL for the rekor server to use to verify signatures and public keys
-	RekorURL string `hcl:"sigstore.rekor_url"`
+	RekorURL string `hcl:"rekor_url"`
 
 	// SkippedImages is a list of images that should skip sigstore verification
-	SkippedImages []string `hcl:"sigstore.skip_signature_verification_image_list"`
+	SkippedImages []string `hcl:"skip_signature_verification_image_list"`
 
 	// AllowedSubjects is a flag indicating whether signature subjects should be compared against the allow-list
-	AllowedSubjectListEnabled bool `hcl:"sigstore.enable_allowed_subjects_list"`
+	AllowedSubjectListEnabled bool `hcl:"enable_allowed_subjects_list"`
 
 	// AllowedSubjects is a list of subjects that should be allowed after verification
-	AllowedSubjects []string `hcl:"sigstore.allowed_subjects_list"`
+	AllowedSubjects []string `hcl:"allowed_subjects_list"`
 }
 
 // k8sConfig holds the configuration distilled from HCL
@@ -339,12 +346,24 @@ func (p *Plugin) Configure(ctx context.Context, req *configv1.ConfigureRequest) 
 		NodeName:                nodeName,
 		ReloadInterval:          reloadInterval,
 
-		EnableSigstore:            config.Experimental.EnableSigstore,
-		RekorURL:                  config.Experimental.RekorURL,
-		SkippedImages:             config.Experimental.SkippedImages,
-		AllowedSubjectListEnabled: config.Experimental.AllowedSubjectListEnabled,
-		AllowedSubjects:           config.Experimental.AllowedSubjects,
+		EnableSigstore:            false,
+		RekorURL:                  "",
+		SkippedImages:             nil,
+		AllowedSubjectListEnabled: false,
+		AllowedSubjects:           nil,
 	}
+
+	// set experimental flags
+	if config.Experimental != nil {
+		if config.Experimental.Sigstore != nil {
+			c.EnableSigstore = true
+			c.RekorURL = config.Experimental.Sigstore.RekorURL
+			c.SkippedImages = config.Experimental.Sigstore.SkippedImages
+			c.AllowedSubjectListEnabled = config.Experimental.Sigstore.AllowedSubjectListEnabled
+			c.AllowedSubjects = config.Experimental.Sigstore.AllowedSubjects
+		}
+	}
+
 	if err := p.reloadKubeletClient(c); err != nil {
 		return nil, err
 	}
