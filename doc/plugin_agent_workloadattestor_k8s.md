@@ -44,14 +44,11 @@ server name validation against the kubelet certificate.
 | `node_name` | The name of the node. Overrides the value obtained by the environment variable specified by `node_name_env`. |
 | `experimental` | experimental options, described below. Currently only contain sigstore options. Defaults to empty. |
 
-Experimental options:  
-| Configuration | Description |
+| Experimental options | Description |
 | ------------- | ----------- |
-| `enable_sigstore`| Enables usage of Sigstore signature validation. Defaults to `false`|
 | `sigstore`| Sigstore options. Options described below. |
 
-Sigstore options:  
-| Configuration | Description |
+| Sigstore options | Description |
 | ------------- | ----------- |
 | `skip_signature_verification_image_list`| The list of images, described as digest hashes, that should be skipped in signature verification. |
 | `enable_allowed_subjects_list`| Enables a list of allowed subjects that are trusted and are allowed to sign container images artificats.|
