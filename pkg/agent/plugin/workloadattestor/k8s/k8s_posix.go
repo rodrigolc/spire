@@ -397,10 +397,8 @@ func (p *Plugin) configureSigstore(config *k8sConfig, sigstore sigstore.Sigstore
 			sigstore.AddAllowedSubject(subject)
 		}
 	}
-	if config.RekorURL != "" {
-		if err := p.sigstore.SetRekorURL(config.RekorURL); err != nil {
-			return status.Errorf(codes.InvalidArgument, "failed to parse Rekor URL: %v", err)
-		}
+	if err := p.sigstore.SetRekorURL(config.RekorURL); err != nil {
+		return status.Errorf(codes.InvalidArgument, "failed to parse Rekor URL: %v", err)
 	}
 	return nil
 }
