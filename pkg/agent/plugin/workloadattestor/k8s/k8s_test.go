@@ -678,7 +678,7 @@ func (s *Suite) TestConfigure() {
 		{
 			name: "secure defaults with skipped images for sigstore",
 			hcl: `
-				experimental = {  
+				experimental = {
 					sigstore = {
 						skip_signature_verification_image_list = ["sha:image1hash","sha:image2hash"]
 					}
@@ -700,7 +700,7 @@ func (s *Suite) TestConfigure() {
 		{
 			name: "secure defaults with allowed subjects for sigstore",
 			hcl: `
-				experimental = {  
+				experimental = {
 					sigstore {
 						enable_allowed_subjects_list = true,
 						allowed_subjects_list = ["spirex@example.com","spirex1@example.com"]
@@ -721,7 +721,7 @@ func (s *Suite) TestConfigure() {
 		{
 			name: "secure defaults with rekor URL",
 			hcl: `
-				experimental = {  
+				experimental = {
 					sigstore = {
 						rekor_url = "https://rekor.example.com"
 					}
@@ -740,9 +740,9 @@ func (s *Suite) TestConfigure() {
 		{
 			name: "secure defaults with empty rekor URL",
 			hcl: `
-				experimental = { 
+				experimental = {
 					sigstore = {
-						rekor_url = "inva{{{lid}"
+						rekor_url = ""
 					}
 				}
 			`,
@@ -753,7 +753,11 @@ func (s *Suite) TestConfigure() {
 		{
 			name: "secure defaults for failed parsing rekor URI",
 			hcl: `
-				sigstore.rekor_url = "inva{{{lid}"
+				experimental = {
+					sigstore = {
+						rekor_url = "inva{{{lid}"
+					}
+				}
 			`,
 			sigstoreError: errors.New("failed parsing rekor URI"),
 			config:        nil,
@@ -762,7 +766,11 @@ func (s *Suite) TestConfigure() {
 		{
 			name: "secure defaults for invalid rekor URL Scheme",
 			hcl: `
-				sigstore.rekor_url = "inva{{{lid}"
+				experimental = {
+					sigstore = {
+						rekor_url = "htttp://rekor.example.com"
+					}
+				}
 			`,
 			sigstoreError: errors.New("invalid rekor URL Scheme"),
 			config:        nil,
@@ -771,7 +779,11 @@ func (s *Suite) TestConfigure() {
 		{
 			name: "secure defaults for invalid rekor URL Host",
 			hcl: `
-				sigstore.rekor_url = "inva{{{lid}"
+				experimental = {
+					sigstore = {
+						rekor_url = "invalid;.com"
+					}
+				}
 			`,
 			sigstoreError: errors.New("invalid rekor URL Host"),
 			config:        nil,

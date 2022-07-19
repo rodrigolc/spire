@@ -241,7 +241,7 @@ func (p *Plugin) Attest(ctx context.Context, req *workloadattestorv1.AttestReque
 			case containerInPod:
 				selectors := getSelectorValuesFromPodInfo(&item, status)
 				if p.config.EnableSigstore {
-					log.Debug("Attemping to get signature info from image", status.Name)
+					log.Debug("Attemping to get signature info for container", telemetry.ContainerName, status.Name)
 					sigstoreSelectors, err := p.sigstore.AttestContainerSignatures(ctx, status)
 					if err != nil {
 						log.Error("Error retrieving signature payload: ", "error", err)
@@ -397,10 +397,8 @@ func (p *Plugin) configureSigstore(config *k8sConfig, sigstore sigstore.Sigstore
 			sigstore.AddAllowedSubject(subject)
 		}
 	}
-	if config.RekorURL != "" {
-		if err := p.sigstore.SetRekorURL(config.RekorURL); err != nil {
-			return status.Errorf(codes.InvalidArgument, "failed to parse Rekor URL: %v", err)
-		}
+	if err := p.sigstore.SetRekorURL(config.RekorURL); err != nil {
+		return status.Errorf(codes.InvalidArgument, "failed to parse Rekor URL: %v", err)
 	}
 	return nil
 }
