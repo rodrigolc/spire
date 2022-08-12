@@ -58,7 +58,7 @@ server name validation against the kubelet certificate.
 
 ### Sigstore workload attestor for SPIRE
 
-The k8s workload attestor plugins has also capabilities to validate images signatures through [sigstore](https://www.sigstore.dev/)
+The k8s workload attestor plugin also has capabilities to validate images signatures through [sigstore](https://www.sigstore.dev/)
 
 Cosign supports container signing, verification, and storage in an OCI registry. Cosign aims to make signatures invisible infrastructure. For this, we’ve chosen the Sigstore ecosystem and artifacts. Digging deeper, we are using: Rekor (signature transparency log), Fulcio (signing certificate issuer and certificate transparency log) and Cosign (container image signing tool) to guarantee the authenticity of the running workload.
 
