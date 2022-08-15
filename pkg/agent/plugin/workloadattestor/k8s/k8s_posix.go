@@ -123,7 +123,7 @@ type HCLConfig struct {
 
 type ExperimentalK8SConfig struct {
 
-	// Experimental enables experimental features.
+	// Sigstore contains sigstore specific configs.
 	Sigstore *SigstoreHCLConfig `hcl:"sigstore,omitempty"`
 }
 
