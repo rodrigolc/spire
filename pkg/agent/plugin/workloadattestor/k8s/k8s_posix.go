@@ -345,12 +345,6 @@ func (p *Plugin) Configure(ctx context.Context, req *configv1.ConfigureRequest) 
 		KubeletCAPath:           config.KubeletCAPath,
 		NodeName:                nodeName,
 		ReloadInterval:          reloadInterval,
-
-		EnableSigstore:            false,
-		RekorURL:                  "",
-		SkippedImages:             nil,
-		AllowedSubjectListEnabled: false,
-		AllowedSubjects:           nil,
 	}
 
 	// set experimental flags
