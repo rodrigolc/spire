@@ -245,7 +245,7 @@ func (p *Plugin) Attest(ctx context.Context, req *workloadattestorv1.AttestReque
 					log.Debug("Attemping to get signature info for container", telemetry.ContainerName, status.Name)
 					sigstoreSelectors, err := p.sigstore.AttestContainerSignatures(ctx, status)
 					if err != nil {
-						log.Error("Error retrieving signature payload: ", "error", err)
+						log.Error("Error retrieving signature payload", "error", err)
 					} else {
 						selectors = append(selectors, sigstoreSelectors...)
 					}
