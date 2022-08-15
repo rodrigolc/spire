@@ -124,10 +124,10 @@ type HCLConfig struct {
 type ExperimentalK8SConfig struct {
 
 	// Experimental enables experimental features.
-	Sigstore *ExperimentalSigstoreConfig `hcl:"sigstore,omitempty"`
+	Sigstore *SigstoreConfig `hcl:"sigstore,omitempty"`
 }
 
-type ExperimentalSigstoreConfig struct {
+type SigstoreConfig struct {
 
 	// // EnableSigstore enables sigstore signature checking.
 	// EnableSigstore bool `hcl:"check_signature_enabled"`
