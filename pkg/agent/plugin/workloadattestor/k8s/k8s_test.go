@@ -750,10 +750,9 @@ func (s *Suite) TestConfigure() {
 					}
 				}
 			`,
-			sigstoreError:   errors.New("rekor URL is empty"),
-			config:          nil,
-			err:             "failed to parse Rekor URL: rekor URL is empty",
-			sigstoreEnabled: true,
+			sigstoreError: errors.New("rekor URL is empty"),
+			config:        nil,
+			err:           "failed to parse Rekor URL: rekor URL is empty",
 		},
 		{
 			name: "secure defaults for failed parsing rekor URI",
@@ -764,10 +763,9 @@ func (s *Suite) TestConfigure() {
 					}
 				}
 			`,
-			sigstoreError:   errors.New("failed parsing rekor URI"),
-			config:          nil,
-			err:             "failed to parse Rekor URL: failed parsing rekor URI",
-			sigstoreEnabled: true,
+			sigstoreError: errors.New("failed parsing rekor URI"),
+			config:        nil,
+			err:           "failed to parse Rekor URL: failed parsing rekor URI",
 		},
 		{
 			name: "secure defaults for invalid rekor URL Scheme",
@@ -778,10 +776,9 @@ func (s *Suite) TestConfigure() {
 					}
 				}
 			`,
-			sigstoreError:   errors.New("invalid rekor URL Scheme"),
-			config:          nil,
-			err:             "failed to parse Rekor URL: invalid rekor URL Scheme",
-			sigstoreEnabled: true,
+			sigstoreError: errors.New("invalid rekor URL Scheme"),
+			config:        nil,
+			err:           "failed to parse Rekor URL: invalid rekor URL Scheme",
 		},
 		{
 			name: "secure defaults for invalid rekor URL Host",
@@ -792,10 +789,9 @@ func (s *Suite) TestConfigure() {
 					}
 				}
 			`,
-			sigstoreError:   errors.New("invalid rekor URL Host"),
-			config:          nil,
-			err:             "failed to parse Rekor URL: invalid rekor URL Host",
-			sigstoreEnabled: true,
+			sigstoreError: errors.New("invalid rekor URL Host"),
+			config:        nil,
+			err:           "failed to parse Rekor URL: invalid rekor URL Host",
 		},
 	}
 
