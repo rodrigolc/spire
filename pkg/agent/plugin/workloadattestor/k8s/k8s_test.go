@@ -477,12 +477,13 @@ func (s *Suite) TestConfigure() {
 	}
 
 	testCases := []struct {
-		name          string
-		raw           string
-		hcl           string
-		config        *config
-		sigstoreError error
-		err           string
+		name            string
+		raw             string
+		hcl             string
+		config          *config
+		sigstoreError   error
+		err             string
+		sigstoreEnabled bool
 	}{
 		{
 			name: "insecure defaults",
@@ -696,6 +697,7 @@ func (s *Suite) TestConfigure() {
 					"sha:image2hash",
 				},
 			},
+			sigstoreEnabled: true,
 		},
 		{
 			name: "secure defaults with allowed subjects for sigstore",
@@ -717,6 +719,7 @@ func (s *Suite) TestConfigure() {
 				AllowedSubjectListEnabled: true,
 				AllowedSubjects:           []string{"spirex@example.com", "spirex1@example.com"},
 			},
+			sigstoreEnabled: true,
 		},
 		{
 			name: "secure defaults with rekor URL",
@@ -736,6 +739,7 @@ func (s *Suite) TestConfigure() {
 				ReloadInterval:    defaultReloadInterval,
 				RekorURL:          "https://rekor.example.com",
 			},
+			sigstoreEnabled: true,
 		},
 		{
 			name: "secure defaults with empty rekor URL",
@@ -746,9 +750,10 @@ func (s *Suite) TestConfigure() {
 					}
 				}
 			`,
-			sigstoreError: errors.New("rekor URL is empty"),
-			config:        nil,
-			err:           "failed to parse Rekor URL: rekor URL is empty",
+			sigstoreError:   errors.New("rekor URL is empty"),
+			config:          nil,
+			err:             "failed to parse Rekor URL: rekor URL is empty",
+			sigstoreEnabled: true,
 		},
 		{
 			name: "secure defaults for failed parsing rekor URI",
@@ -759,9 +764,10 @@ func (s *Suite) TestConfigure() {
 					}
 				}
 			`,
-			sigstoreError: errors.New("failed parsing rekor URI"),
-			config:        nil,
-			err:           "failed to parse Rekor URL: failed parsing rekor URI",
+			sigstoreError:   errors.New("failed parsing rekor URI"),
+			config:          nil,
+			err:             "failed to parse Rekor URL: failed parsing rekor URI",
+			sigstoreEnabled: true,
 		},
 		{
 			name: "secure defaults for invalid rekor URL Scheme",
@@ -772,9 +778,10 @@ func (s *Suite) TestConfigure() {
 					}
 				}
 			`,
-			sigstoreError: errors.New("invalid rekor URL Scheme"),
-			config:        nil,
-			err:           "failed to parse Rekor URL: invalid rekor URL Scheme",
+			sigstoreError:   errors.New("invalid rekor URL Scheme"),
+			config:          nil,
+			err:             "failed to parse Rekor URL: invalid rekor URL Scheme",
+			sigstoreEnabled: true,
 		},
 		{
 			name: "secure defaults for invalid rekor URL Host",
@@ -785,9 +792,10 @@ func (s *Suite) TestConfigure() {
 					}
 				}
 			`,
-			sigstoreError: errors.New("invalid rekor URL Host"),
-			config:        nil,
-			err:           "failed to parse Rekor URL: invalid rekor URL Host",
+			sigstoreError:   errors.New("invalid rekor URL Host"),
+			config:          nil,
+			err:             "failed to parse Rekor URL: invalid rekor URL Host",
+			sigstoreEnabled: true,
 		},
 	}
 
@@ -835,19 +843,25 @@ func (s *Suite) TestConfigure() {
 			assert.Equal(t, testCase.config.PollRetryInterval, c.PollRetryInterval)
 			assert.Equal(t, testCase.config.ReloadInterval, c.ReloadInterval)
 
-			assert.Equal(t, testCase.config.SkippedImages, c.SkippedImages)
-			for _, sImage := range testCase.config.SkippedImages {
-				assert.Contains(t, p.sigstore.(*sigstoreMock).skippedImages, sImage)
-			}
+			if testCase.sigstoreEnabled {
+				assert.NotNil(t, c.sigstoreConfig)
 
-			assert.Equal(t, testCase.config.AllowedSubjectListEnabled, c.AllowedSubjectListEnabled)
-			assert.Equal(t, testCase.config.AllowedSubjectListEnabled, p.sigstore.(*sigstoreMock).allowedSubjectListEnabled)
+				assert.Equal(t, testCase.config.SkippedImages, c.sigstoreConfig.SkippedImages)
+				for _, sImage := range testCase.config.SkippedImages {
+					assert.Contains(t, p.sigstore.(*sigstoreMock).skippedImages, sImage)
+				}
 
-			assert.Equal(t, testCase.config.AllowedSubjects, c.AllowedSubjects)
-			for _, sSubject := range testCase.config.AllowedSubjects {
-				assert.Contains(t, p.sigstore.(*sigstoreMock).allowedSubjects, sSubject)
+				assert.Equal(t, testCase.config.AllowedSubjectListEnabled, c.sigstoreConfig.AllowedSubjectListEnabled)
+				assert.Equal(t, testCase.config.AllowedSubjectListEnabled, p.sigstore.(*sigstoreMock).allowedSubjectListEnabled)
+
+				assert.Equal(t, testCase.config.AllowedSubjects, c.sigstoreConfig.AllowedSubjects)
+				for _, sSubject := range testCase.config.AllowedSubjects {
+					assert.Contains(t, p.sigstore.(*sigstoreMock).allowedSubjects, sSubject)
+				}
+				assert.Equal(t, testCase.config.RekorURL, c.sigstoreConfig.RekorURL)
+			} else {
+				assert.Nil(t, c.sigstoreConfig)
 			}
-			assert.Equal(t, testCase.config.RekorURL, c.RekorURL)
 		})
 	}
 }

@@ -124,13 +124,11 @@ type HCLConfig struct {
 type ExperimentalK8SConfig struct {
 
 	// Experimental enables experimental features.
-	Sigstore *SigstoreConfig `hcl:"sigstore,omitempty"`
+	Sigstore *SigstoreHCLConfig `hcl:"sigstore,omitempty"`
 }
 
-type SigstoreConfig struct {
-
-	// // EnableSigstore enables sigstore signature checking.
-	// EnableSigstore bool `hcl:"check_signature_enabled"`
+// SigstoreHCLConfig holds the sigstore configuration parsed from HCL
+type SigstoreHCLConfig struct {
 
 	// RekorURL is the URL for the rekor server to use to verify signatures and public keys
 	RekorURL string `hcl:"rekor_url"`
@@ -159,14 +157,18 @@ type k8sConfig struct {
 	NodeName                string
 	ReloadInterval          time.Duration
 
-	EnableSigstore            bool
+	sigstoreConfig *sigstoreConfig
+
+	Client     *kubeletClient
+	LastReload time.Time
+}
+
+// sigstoreConfig holds the sigstore configuration distilled from HCL
+type sigstoreConfig struct {
 	RekorURL                  string
 	SkippedImages             []string
 	AllowedSubjectListEnabled bool
 	AllowedSubjects           []string
-
-	Client     *kubeletClient
-	LastReload time.Time
 }
 
 type Plugin struct {
@@ -240,7 +242,7 @@ func (p *Plugin) Attest(ctx context.Context, req *workloadattestorv1.AttestReque
 			switch lookup {
 			case containerInPod:
 				selectors := getSelectorValuesFromPodInfo(&item, status)
-				if p.config.EnableSigstore {
+				if p.config.sigstoreConfig != nil {
 					log.Debug("Attemping to get signature info for container", telemetry.ContainerName, status.Name)
 					sigstoreSelectors, err := p.sigstore.AttestContainerSignatures(ctx, status)
 					if err != nil {
@@ -349,17 +351,18 @@ func (p *Plugin) Configure(ctx context.Context, req *configv1.ConfigureRequest) 
 
 	// set experimental flags
 	if config.Experimental != nil && config.Experimental.Sigstore != nil {
-		c.EnableSigstore = true
-		c.RekorURL = config.Experimental.Sigstore.RekorURL
-		c.SkippedImages = config.Experimental.Sigstore.SkippedImages
-		c.AllowedSubjectListEnabled = config.Experimental.Sigstore.AllowedSubjectListEnabled
-		c.AllowedSubjects = config.Experimental.Sigstore.AllowedSubjects
+		c.sigstoreConfig = &sigstoreConfig{
+			RekorURL:                  config.Experimental.Sigstore.RekorURL,
+			SkippedImages:             config.Experimental.Sigstore.SkippedImages,
+			AllowedSubjectListEnabled: config.Experimental.Sigstore.AllowedSubjectListEnabled,
+			AllowedSubjects:           config.Experimental.Sigstore.AllowedSubjects,
+		}
 	}
 
 	if err := p.reloadKubeletClient(c); err != nil {
 		return nil, err
 	}
-	if c.EnableSigstore && p.sigstore != nil {
+	if c.sigstoreConfig != nil && p.sigstore != nil {
 		if err := p.configureSigstore(c, p.sigstore); err != nil {
 			return nil, err
 		}
@@ -377,18 +380,18 @@ func (p *Plugin) configureSigstore(config *k8sConfig, sigstore sigstore.Sigstore
 	// Configure sigstore settings
 	sigstore.ClearSkipList()
 	imageIDList := []string{}
-	if config.SkippedImages != nil {
-		imageIDList = append(imageIDList, config.SkippedImages...)
+	if config.sigstoreConfig.SkippedImages != nil {
+		imageIDList = append(imageIDList, config.sigstoreConfig.SkippedImages...)
 	}
 	sigstore.AddSkippedImage(imageIDList)
-	sigstore.EnableAllowSubjectList(config.AllowedSubjectListEnabled)
+	sigstore.EnableAllowSubjectList(config.sigstoreConfig.AllowedSubjectListEnabled)
 	sigstore.ClearAllowedSubjects()
-	if config.AllowedSubjects != nil {
-		for _, subject := range config.AllowedSubjects {
+	if config.sigstoreConfig.AllowedSubjects != nil {
+		for _, subject := range config.sigstoreConfig.AllowedSubjects {
 			sigstore.AddAllowedSubject(subject)
 		}
 	}
-	if err := p.sigstore.SetRekorURL(config.RekorURL); err != nil {
+	if err := p.sigstore.SetRekorURL(config.sigstoreConfig.RekorURL); err != nil {
 		return status.Errorf(codes.InvalidArgument, "failed to parse Rekor URL: %v", err)
 	}
 	return nil
