@@ -5,6 +5,7 @@
 package k8s
 
 import (
+	"bytes"
 	"context"
 	"crypto/ecdsa"
 	"crypto/rand"
@@ -266,9 +267,33 @@ func (s *Suite) TestAttestWithSigstoreSkippedImage() {
 
 func (s *Suite) TestAttestWithFailedSigstoreSignatures() {
 	s.startInsecureKubelet()
-	p := s.loadInsecurePlugin()
-	s.setSigstoreReturnError(errors.New("sigstore error"))
-	s.requireAttestSuccessWithPod(p)
+
+	p := s.newPlugin()
+
+	v1 := new(workloadattestor.V1)
+	plugintest.Load(s.T(), builtin(p), v1,
+		plugintest.Configure(fmt.Sprintf(`
+	kubelet_read_only_port = %d
+	max_poll_attempts = 5
+	poll_retry_interval = "1s"
+	experimental {
+		sigstore {}
+	}
+	`, s.kubeletPort())),
+	)
+
+	buf := bytes.Buffer{}
+	newLog := hclog.New(&hclog.LoggerOptions{
+		Output: &buf,
+	})
+
+	p.SetLogger(newLog)
+
+	s.sigstoreMock.returnError = errors.New("sigstore error 123")
+
+	s.requireAttestSuccessWithPod(v1)
+	s.Require().Contains(buf.String(), "Error retrieving signature payload")
+	s.Require().Contains(buf.String(), "sigstore error 123")
 }
 
 func (s *Suite) TestAttestWithPidInKindPod() {
