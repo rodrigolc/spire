@@ -354,26 +354,23 @@ func (p *Plugin) Configure(ctx context.Context, req *configv1.ConfigureRequest) 
 	}
 
 	// set experimental flags
-	if config.Experimental != nil {
-		if config.Experimental.Sigstore != nil {
-			c.EnableSigstore = true
-			c.RekorURL = config.Experimental.Sigstore.RekorURL
-			c.SkippedImages = config.Experimental.Sigstore.SkippedImages
-			c.AllowedSubjectListEnabled = config.Experimental.Sigstore.AllowedSubjectListEnabled
-			c.AllowedSubjects = config.Experimental.Sigstore.AllowedSubjects
-		}
+	if config.Experimental != nil && config.Experimental.Sigstore != nil {
+		c.EnableSigstore = true
+		c.RekorURL = config.Experimental.Sigstore.RekorURL
+		c.SkippedImages = config.Experimental.Sigstore.SkippedImages
+		c.AllowedSubjectListEnabled = config.Experimental.Sigstore.AllowedSubjectListEnabled
+		c.AllowedSubjects = config.Experimental.Sigstore.AllowedSubjects
 	}
 
 	if err := p.reloadKubeletClient(c); err != nil {
 		return nil, err
 	}
-	if c.EnableSigstore {
-		if p.sigstore != nil {
-			if err := p.configureSigstore(c, p.sigstore); err != nil {
-				return nil, err
-			}
+	if c.EnableSigstore && p.sigstore != nil {
+		if err := p.configureSigstore(c, p.sigstore); err != nil {
+			return nil, err
 		}
 	}
+
 	// Set the config
 	p.setConfig(c)
 	return &configv1.ConfigureResponse{}, nil
