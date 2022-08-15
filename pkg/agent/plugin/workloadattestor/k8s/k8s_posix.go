@@ -187,12 +187,11 @@ type Plugin struct {
 }
 
 func New() *Plugin {
-	newcache := sigstore.NewCache(maximumAmountCache)
 	return &Plugin{
 		fs:       cgroups.OSFileSystem{},
 		clock:    clock.New(),
 		getenv:   os.Getenv,
-		sigstore: sigstore.New(newcache, nil),
+		sigstore: nil,
 	}
 }
 
@@ -362,7 +361,11 @@ func (p *Plugin) Configure(ctx context.Context, req *configv1.ConfigureRequest) 
 	if err := p.reloadKubeletClient(c); err != nil {
 		return nil, err
 	}
-	if c.sigstoreConfig != nil && p.sigstore != nil {
+	if c.sigstoreConfig != nil {
+		if p.sigstore == nil {
+			newcache := sigstore.NewCache(maximumAmountCache)
+			p.sigstore = sigstore.New(newcache, nil)
+		}
 		if err := p.configureSigstore(c, p.sigstore); err != nil {
 			return nil, err
 		}
