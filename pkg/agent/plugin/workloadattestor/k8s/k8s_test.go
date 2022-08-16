@@ -1064,10 +1064,6 @@ func (s *Suite) setSigstoreSkippedSigSelectors(selectors []string) {
 	s.sigstoreSkippedSigSelectors = selectors
 }
 
-func (s *Suite) setSigstoreReturnError(err error) {
-	s.sigstoreReturnError = err
-}
-
 func (s *Suite) writeFile(path, data string) {
 	realPath := filepath.Join(s.dir, path)
 	s.Require().NoError(os.MkdirAll(filepath.Dir(realPath), 0755))
