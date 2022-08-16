@@ -367,6 +367,7 @@ func (p *Plugin) Configure(ctx context.Context, req *configv1.ConfigureRequest) 
 		if p.sigstore == nil {
 			newcache := sigstore.NewCache(maximumAmountCache)
 			p.sigstore = sigstore.New(newcache, nil)
+			p.sigstore.SetLogger(p.log)
 		}
 		if err := p.configureSigstore(c, p.sigstore); err != nil {
 			return nil, err
