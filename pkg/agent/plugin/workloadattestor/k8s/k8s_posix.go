@@ -197,7 +197,9 @@ func New() *Plugin {
 
 func (p *Plugin) SetLogger(log hclog.Logger) {
 	p.log = log
-	p.sigstore.SetLogger(log)
+	if p.sigstore != nil {
+		p.sigstore.SetLogger(log)
+	}
 }
 
 func (p *Plugin) Attest(ctx context.Context, req *workloadattestorv1.AttestRequest) (*workloadattestorv1.AttestResponse, error) {
