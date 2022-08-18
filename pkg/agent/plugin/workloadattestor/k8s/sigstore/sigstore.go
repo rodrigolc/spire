@@ -158,28 +158,26 @@ func (s *sigstoreImpl) ExtractSelectorsFromSignatures(signatures []oci.Signature
 // SelectorValuesFromSignature extracts selectors from a signature.
 // returns a list of selectors.
 func (s *sigstoreImpl) SelectorValuesFromSignature(signature oci.Signature, containerID string) *SelectorsFromSignatures {
-	var selectorsFromSignatures *SelectorsFromSignatures
-	subject, err := getSignatureSubject(signature)
 
+	subject, err := getSignatureSubject(signature)
 	if err != nil {
 		s.logger.Error("Error getting signature subject", "error", err)
-		return selectorsFromSignatures
+		return nil
 	}
 
 	if subject == "" {
 		s.logger.Error("Error getting signature subject:", "error", errors.New("empty subject"))
-		return selectorsFromSignatures
+		return nil
 	}
 
 	if s.allowListEnabled {
 		if _, ok := s.subjectAllowList[subject]; !ok {
-			s.logger.Info("Subject not in allow-list", "subject", subject)
-			return selectorsFromSignatures
+			s.logger.Debug("Subject not in allow-list", "subject", subject)
+			return nil
 		}
 	}
 
-	selectorsFromSignatures = &SelectorsFromSignatures{}
-	selectorsFromSignatures.Subject = subject
+	selectorsFromSignatures := &SelectorsFromSignatures{Subject: subject}
 
 	bundle, err := signature.Bundle()
 	if err != nil {
@@ -189,9 +187,9 @@ func (s *sigstoreImpl) SelectorValuesFromSignature(signature oci.Signature, cont
 	sigContent, err := getBundleSignatureContent(bundle)
 	if err != nil {
 		s.logger.Error("Error getting signature content", "error", err)
-	} else {
-		selectorsFromSignatures.Content = sigContent
 	}
+	selectorsFromSignatures.Content = sigContent
+
 	if bundle.Payload.LogID != "" {
 		selectorsFromSignatures.LogID = bundle.Payload.LogID
 	}
