@@ -118,20 +118,17 @@ func (s *sigstoreImpl) SetLogger(logger hclog.Logger) {
 func (s *sigstoreImpl) FetchImageSignatures(ctx context.Context, imageName string) ([]oci.Signature, error) {
 	ref, err := name.ParseReference(imageName)
 	if err != nil {
-		message := fmt.Errorf("error parsing image reference: %w", err)
-		return nil, message
+		return nil, fmt.Errorf("error parsing image reference: %w", err)
 	}
 
 	if _, err := s.ValidateImage(ref); err != nil {
-		message := fmt.Errorf("could not validate image reference digest: %w", err)
-		return nil, message
+		return nil, fmt.Errorf("could not validate image reference digest: %w", err)
 	}
 
 	co := s.checkOptsFunction(s.rekorURL)
 	sigs, ok, err := s.verifyFunction(ctx, ref, co)
 	if err != nil {
-		message := fmt.Errorf("error verifying signature: %w", err)
-		return nil, message
+		return nil, fmt.Errorf("error verifying signature: %w", err)
 	}
 	if !ok {
 		return nil, fmt.Errorf("bundle not verified for %q", imageName)
