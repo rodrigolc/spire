@@ -203,7 +203,7 @@ func (s *sigstoreImpl) SelectorValuesFromSignature(signature oci.Signature, cont
 // If the image ID is found in the skip list, it returns true.
 // If the image ID is not found in the skip list, it returns false.
 func (s *sigstoreImpl) ShouldSkipImage(imageID string) (bool, error) {
-	if s.skippedImages == nil {
+	if len(s.skippedImages) == 0 {
 		return false, nil
 	}
 	if imageID == "" {
