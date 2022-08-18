@@ -331,8 +331,7 @@ func getSignatureSubject(signature oci.Signature) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	err = json.Unmarshal(pl, &ss)
-	if err != nil {
+	if err := json.Unmarshal(pl, &ss); err != nil {
 		return "", err
 	}
 	cert, err := signature.Cert()
@@ -340,22 +339,18 @@ func getSignatureSubject(signature oci.Signature) (string, error) {
 		return "", fmt.Errorf("failed to access signature certificate: %w", err)
 	}
 
-	subject := ""
 	if cert != nil {
-		subject = certSubject(cert)
-		return subject, nil
+		return certSubject(cert), nil
 	}
 	if len(ss.Optional) > 0 {
-		subjString, ok := ss.Optional["subject"]
-		if ok {
-			subj, ok := subjString.(string)
-			if ok {
-				subject = subj
+		if subjString, ok := ss.Optional["subject"]; ok {
+			if subj, ok := subjString.(string); ok {
+				return subj, nil
 			}
 		}
 	}
 
-	return subject, nil
+	return "", errors.New("no subject found in signature")
 }
 
 func getBundleSignatureContent(bundle *bundle.RekorBundle) (string, error) {
