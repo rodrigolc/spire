@@ -166,7 +166,7 @@ func (s *sigstoreImpl) SelectorValuesFromSignature(signature oci.Signature, cont
 	}
 
 	if subject == "" {
-		s.logger.Error("Error getting signature subject:", "error", errors.New("empty subject"))
+		s.logger.Error("Error getting signature subject", "error", errors.New("empty subject"))
 		return nil
 	}
 
