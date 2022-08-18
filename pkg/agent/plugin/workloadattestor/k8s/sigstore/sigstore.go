@@ -234,7 +234,7 @@ func (s *sigstoreImpl) ClearSkipList() {
 func (s *sigstoreImpl) ValidateImage(ref name.Reference) (bool, error) {
 	dgst, ok := ref.(name.Digest)
 	if !ok {
-		return false, fmt.Errorf("reference %s is not a digest", ref.String())
+		return false, fmt.Errorf("reference %T is not a digest", ref)
 	}
 	desc, err := s.fetchImageManifestFunction(dgst)
 	if err != nil {
@@ -315,10 +315,10 @@ func (s *sigstoreImpl) SetRekorURL(rekorURL string) error {
 		return fmt.Errorf("failed parsing rekor URI: %w", err)
 	}
 	if rekorURI.Scheme != "" && rekorURI.Scheme != "https" {
-		return fmt.Errorf("invalid rekor URL Scheme: %s", rekorURI.Scheme)
+		return fmt.Errorf("invalid rekor URL Scheme %q", rekorURI.Scheme)
 	}
 	if rekorURI.Host == "" {
-		return fmt.Errorf("invalid rekor URL Host: %s", rekorURI.Host)
+		return fmt.Errorf("host is required on rekor URL")
 	}
 	s.rekorURL = *rekorURI
 	return nil
