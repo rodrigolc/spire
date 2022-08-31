@@ -123,14 +123,12 @@ type HCLConfig struct {
 
 type ExperimentalK8SConfig struct {
 
-	// Experimental enables experimental features.
-	Sigstore *ExperimentalSigstoreConfig `hcl:"sigstore,omitempty"`
+	// Sigstore contains sigstore specific configs.
+	Sigstore *SigstoreHCLConfig `hcl:"sigstore,omitempty"`
 }
 
-type ExperimentalSigstoreConfig struct {
-
-	// // EnableSigstore enables sigstore signature checking.
-	// EnableSigstore bool `hcl:"check_signature_enabled"`
+// SigstoreHCLConfig holds the sigstore configuration parsed from HCL
+type SigstoreHCLConfig struct {
 
 	// RekorURL is the URL for the rekor server to use to verify signatures and public keys
 	RekorURL string `hcl:"rekor_url"`
@@ -138,7 +136,7 @@ type ExperimentalSigstoreConfig struct {
 	// SkippedImages is a list of images that should skip sigstore verification
 	SkippedImages []string `hcl:"skip_signature_verification_image_list"`
 
-	// AllowedSubjects is a flag indicating whether signature subjects should be compared against the allow-list
+	// AllowedSubjectListEnabled is a flag indicating whether signature subjects should be compared against AllowedSubjects
 	AllowedSubjectListEnabled bool `hcl:"enable_allowed_subjects_list"`
 
 	// AllowedSubjects is a list of subjects that should be allowed after verification
@@ -159,14 +157,18 @@ type k8sConfig struct {
 	NodeName                string
 	ReloadInterval          time.Duration
 
-	EnableSigstore            bool
+	sigstoreConfig *sigstoreConfig
+
+	Client     *kubeletClient
+	LastReload time.Time
+}
+
+// sigstoreConfig holds the sigstore configuration distilled from HCL
+type sigstoreConfig struct {
 	RekorURL                  string
 	SkippedImages             []string
 	AllowedSubjectListEnabled bool
 	AllowedSubjects           []string
-
-	Client     *kubeletClient
-	LastReload time.Time
 }
 
 type Plugin struct {
@@ -185,18 +187,19 @@ type Plugin struct {
 }
 
 func New() *Plugin {
-	newcache := sigstore.NewCache(maximumAmountCache)
 	return &Plugin{
 		fs:       cgroups.OSFileSystem{},
 		clock:    clock.New(),
 		getenv:   os.Getenv,
-		sigstore: sigstore.New(newcache, nil),
+		sigstore: nil,
 	}
 }
 
 func (p *Plugin) SetLogger(log hclog.Logger) {
 	p.log = log
-	p.sigstore.SetLogger(log)
+	if p.sigstore != nil {
+		p.sigstore.SetLogger(log)
+	}
 }
 
 func (p *Plugin) Attest(ctx context.Context, req *workloadattestorv1.AttestRequest) (*workloadattestorv1.AttestResponse, error) {
@@ -240,11 +243,11 @@ func (p *Plugin) Attest(ctx context.Context, req *workloadattestorv1.AttestReque
 			switch lookup {
 			case containerInPod:
 				selectors := getSelectorValuesFromPodInfo(&item, status)
-				if p.config.EnableSigstore {
+				if p.config.sigstoreConfig != nil {
 					log.Debug("Attemping to get signature info for container", telemetry.ContainerName, status.Name)
 					sigstoreSelectors, err := p.sigstore.AttestContainerSignatures(ctx, status)
 					if err != nil {
-						log.Error("Error retrieving signature payload: ", "error", err)
+						log.Error("Error retrieving signature payload", "error", err)
 					} else {
 						selectors = append(selectors, sigstoreSelectors...)
 					}
@@ -345,35 +348,32 @@ func (p *Plugin) Configure(ctx context.Context, req *configv1.ConfigureRequest) 
 		KubeletCAPath:           config.KubeletCAPath,
 		NodeName:                nodeName,
 		ReloadInterval:          reloadInterval,
-
-		EnableSigstore:            false,
-		RekorURL:                  "",
-		SkippedImages:             nil,
-		AllowedSubjectListEnabled: false,
-		AllowedSubjects:           nil,
 	}
 
 	// set experimental flags
-	if config.Experimental != nil {
-		if config.Experimental.Sigstore != nil {
-			c.EnableSigstore = true
-			c.RekorURL = config.Experimental.Sigstore.RekorURL
-			c.SkippedImages = config.Experimental.Sigstore.SkippedImages
-			c.AllowedSubjectListEnabled = config.Experimental.Sigstore.AllowedSubjectListEnabled
-			c.AllowedSubjects = config.Experimental.Sigstore.AllowedSubjects
+	if config.Experimental != nil && config.Experimental.Sigstore != nil {
+		c.sigstoreConfig = &sigstoreConfig{
+			RekorURL:                  config.Experimental.Sigstore.RekorURL,
+			SkippedImages:             config.Experimental.Sigstore.SkippedImages,
+			AllowedSubjectListEnabled: config.Experimental.Sigstore.AllowedSubjectListEnabled,
+			AllowedSubjects:           config.Experimental.Sigstore.AllowedSubjects,
 		}
 	}
 
 	if err := p.reloadKubeletClient(c); err != nil {
 		return nil, err
 	}
-	if c.EnableSigstore {
-		if p.sigstore != nil {
-			if err := p.configureSigstore(c, p.sigstore); err != nil {
-				return nil, err
-			}
+	if c.sigstoreConfig != nil {
+		if p.sigstore == nil {
+			newcache := sigstore.NewCache(maximumAmountCache)
+			p.sigstore = sigstore.New(newcache, nil)
+			p.sigstore.SetLogger(p.log)
+		}
+		if err := p.configureSigstore(c, p.sigstore); err != nil {
+			return nil, err
 		}
 	}
+
 	// Set the config
 	p.setConfig(c)
 	return &configv1.ConfigureResponse{}, nil
@@ -386,18 +386,18 @@ func (p *Plugin) configureSigstore(config *k8sConfig, sigstore sigstore.Sigstore
 	// Configure sigstore settings
 	sigstore.ClearSkipList()
 	imageIDList := []string{}
-	if config.SkippedImages != nil {
-		imageIDList = append(imageIDList, config.SkippedImages...)
+	if config.sigstoreConfig.SkippedImages != nil {
+		imageIDList = append(imageIDList, config.sigstoreConfig.SkippedImages...)
 	}
 	sigstore.AddSkippedImage(imageIDList)
-	sigstore.EnableAllowSubjectList(config.AllowedSubjectListEnabled)
+	sigstore.EnableAllowSubjectList(config.sigstoreConfig.AllowedSubjectListEnabled)
 	sigstore.ClearAllowedSubjects()
-	if config.AllowedSubjects != nil {
-		for _, subject := range config.AllowedSubjects {
+	if config.sigstoreConfig.AllowedSubjects != nil {
+		for _, subject := range config.sigstoreConfig.AllowedSubjects {
 			sigstore.AddAllowedSubject(subject)
 		}
 	}
-	if err := p.sigstore.SetRekorURL(config.RekorURL); err != nil {
+	if err := p.sigstore.SetRekorURL(config.sigstoreConfig.RekorURL); err != nil {
 		return status.Errorf(codes.InvalidArgument, "failed to parse Rekor URL: %v", err)
 	}
 	return nil

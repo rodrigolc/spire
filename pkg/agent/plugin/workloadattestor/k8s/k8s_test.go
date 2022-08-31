@@ -5,6 +5,7 @@
 package k8s
 
 import (
+	"bytes"
 	"context"
 	"crypto/ecdsa"
 	"crypto/rand"
@@ -266,9 +267,33 @@ func (s *Suite) TestAttestWithSigstoreSkippedImage() {
 
 func (s *Suite) TestAttestWithFailedSigstoreSignatures() {
 	s.startInsecureKubelet()
-	p := s.loadInsecurePlugin()
-	s.setSigstoreReturnError(errors.New("sigstore error"))
-	s.requireAttestSuccessWithPod(p)
+
+	p := s.newPlugin()
+
+	v1 := new(workloadattestor.V1)
+	plugintest.Load(s.T(), builtin(p), v1,
+		plugintest.Configure(fmt.Sprintf(`
+	kubelet_read_only_port = %d
+	max_poll_attempts = 5
+	poll_retry_interval = "1s"
+	experimental {
+		sigstore {}
+	}
+	`, s.kubeletPort())),
+	)
+
+	buf := bytes.Buffer{}
+	newLog := hclog.New(&hclog.LoggerOptions{
+		Output: &buf,
+	})
+
+	p.SetLogger(newLog)
+
+	s.sigstoreMock.returnError = errors.New("sigstore error 123")
+
+	s.requireAttestSuccessWithPod(v1)
+	s.Require().Contains(buf.String(), "Error retrieving signature payload")
+	s.Require().Contains(buf.String(), "sigstore error 123")
 }
 
 func (s *Suite) TestAttestWithPidInKindPod() {
@@ -477,12 +502,13 @@ func (s *Suite) TestConfigure() {
 	}
 
 	testCases := []struct {
-		name          string
-		raw           string
-		hcl           string
-		config        *config
-		sigstoreError error
-		err           string
+		name            string
+		raw             string
+		hcl             string
+		config          *config
+		sigstoreError   error
+		err             string
+		sigstoreEnabled bool
 	}{
 		{
 			name: "insecure defaults",
@@ -696,6 +722,7 @@ func (s *Suite) TestConfigure() {
 					"sha:image2hash",
 				},
 			},
+			sigstoreEnabled: true,
 		},
 		{
 			name: "secure defaults with allowed subjects for sigstore",
@@ -717,6 +744,7 @@ func (s *Suite) TestConfigure() {
 				AllowedSubjectListEnabled: true,
 				AllowedSubjects:           []string{"spirex@example.com", "spirex1@example.com"},
 			},
+			sigstoreEnabled: true,
 		},
 		{
 			name: "secure defaults with rekor URL",
@@ -736,6 +764,7 @@ func (s *Suite) TestConfigure() {
 				ReloadInterval:    defaultReloadInterval,
 				RekorURL:          "https://rekor.example.com",
 			},
+			sigstoreEnabled: true,
 		},
 		{
 			name: "secure defaults with empty rekor URL",
@@ -835,19 +864,25 @@ func (s *Suite) TestConfigure() {
 			assert.Equal(t, testCase.config.PollRetryInterval, c.PollRetryInterval)
 			assert.Equal(t, testCase.config.ReloadInterval, c.ReloadInterval)
 
-			assert.Equal(t, testCase.config.SkippedImages, c.SkippedImages)
-			for _, sImage := range testCase.config.SkippedImages {
-				assert.Contains(t, p.sigstore.(*sigstoreMock).skippedImages, sImage)
-			}
+			if testCase.sigstoreEnabled {
+				assert.NotNil(t, c.sigstoreConfig)
 
-			assert.Equal(t, testCase.config.AllowedSubjectListEnabled, c.AllowedSubjectListEnabled)
-			assert.Equal(t, testCase.config.AllowedSubjectListEnabled, p.sigstore.(*sigstoreMock).allowedSubjectListEnabled)
+				assert.Equal(t, testCase.config.SkippedImages, c.sigstoreConfig.SkippedImages)
+				for _, sImage := range testCase.config.SkippedImages {
+					assert.Contains(t, p.sigstore.(*sigstoreMock).skippedImages, sImage)
+				}
 
-			assert.Equal(t, testCase.config.AllowedSubjects, c.AllowedSubjects)
-			for _, sSubject := range testCase.config.AllowedSubjects {
-				assert.Contains(t, p.sigstore.(*sigstoreMock).allowedSubjects, sSubject)
+				assert.Equal(t, testCase.config.AllowedSubjectListEnabled, c.sigstoreConfig.AllowedSubjectListEnabled)
+				assert.Equal(t, testCase.config.AllowedSubjectListEnabled, p.sigstore.(*sigstoreMock).allowedSubjectListEnabled)
+
+				assert.Equal(t, testCase.config.AllowedSubjects, c.sigstoreConfig.AllowedSubjects)
+				for _, sSubject := range testCase.config.AllowedSubjects {
+					assert.Contains(t, p.sigstore.(*sigstoreMock).allowedSubjects, sSubject)
+				}
+				assert.Equal(t, testCase.config.RekorURL, c.sigstoreConfig.RekorURL)
+			} else {
+				assert.Nil(t, c.sigstoreConfig)
 			}
-			assert.Equal(t, testCase.config.RekorURL, c.RekorURL)
 		})
 	}
 }
@@ -1027,10 +1062,6 @@ func (s *Suite) setSigstoreSkipSigs(skip bool) {
 
 func (s *Suite) setSigstoreSkippedSigSelectors(selectors []string) {
 	s.sigstoreSkippedSigSelectors = selectors
-}
-
-func (s *Suite) setSigstoreReturnError(err error) {
-	s.sigstoreReturnError = err
 }
 
 func (s *Suite) writeFile(path, data string) {
