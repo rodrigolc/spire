@@ -17,7 +17,6 @@ import (
 	"time"
 
 	"github.com/google/go-containerregistry/pkg/name"
-	v1 "github.com/google/go-containerregistry/pkg/v1"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
 	"github.com/hashicorp/go-hclog"
 	"github.com/sigstore/cosign/pkg/cosign"
@@ -32,31 +31,19 @@ const (
 )
 
 type signature struct {
-	v1.Layer
+	oci.Signature
 
 	payload []byte
 	cert    *x509.Certificate
 	bundle  *bundle.RekorBundle
 }
 
-func (signature) Annotations() (map[string]string, error) {
-	return nil, nil
-}
-
 func (s signature) Payload() ([]byte, error) {
 	return s.payload, nil
 }
 
-func (signature) Base64Signature() (string, error) {
-	return "", nil
-}
-
 func (s signature) Cert() (*x509.Certificate, error) {
 	return s.cert, nil
-}
-
-func (signature) Chain() ([]*x509.Certificate, error) {
-	return nil, nil
 }
 
 func (s signature) Bundle() (*bundle.RekorBundle, error) {
