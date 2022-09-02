@@ -23,6 +23,7 @@ import (
 	"github.com/sigstore/cosign/pkg/cosign/bundle"
 	"github.com/sigstore/cosign/pkg/oci"
 	rekor "github.com/sigstore/rekor/pkg/generated/client"
+	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -84,32 +85,37 @@ func GenerateRootCa() (*x509.Certificate, *ecdsa.PrivateKey, error) {
 
 func TestNew(t *testing.T) {
 	newcache := NewCache(maximumAmountCache)
-
-	tests := []struct {
-		name string
-		want Sigstore
-	}{
-		{
-			name: "New",
-			want: &sigstoreImpl{
-				verifyFunction:             cosign.VerifyImageSignatures,
-				fetchImageManifestFunction: remote.Get,
-				skippedImages:              nil,
-				allowListEnabled:           false,
-				subjectAllowList:           map[string]bool{},
-				rekorURL:                   url.URL{Scheme: rekor.DefaultSchemes[0], Host: rekor.DefaultHost, Path: rekor.DefaultBasePath},
-				sigstorecache:              newcache,
-				checkOptsFunction:          DefaultCheckOpts,
-				logger:                     nil,
-			},
-		},
+	want := &sigstoreImpl{
+		verifyFunction:             cosign.VerifyImageSignatures,
+		fetchImageManifestFunction: remote.Get,
+		skippedImages:              nil,
+		allowListEnabled:           false,
+		subjectAllowList:           map[string]bool{},
+		rekorURL:                   url.URL{Scheme: rekor.DefaultSchemes[0], Host: rekor.DefaultHost, Path: rekor.DefaultBasePath},
+		sigstorecache:              newcache,
+		checkOptsFunction:          DefaultCheckOpts,
+		logger:                     nil,
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := New(newcache, nil); fmt.Sprintf("%v", got) != fmt.Sprintf("%v", tt.want) {
-				t.Errorf("New() = %v, want %v", got, tt.want)
-			}
-		})
+	sigstore := New(newcache, nil)
+
+	if sigImpObj, ok := sigstore.(*sigstoreImpl); !ok {
+		t.Errorf("object type does not match")
+	} else {
+		if &(sigImpObj.verifyFunction) == &(want.verifyFunction) {
+			t.Errorf("verify functions do not match")
+		}
+		if &(sigImpObj.fetchImageManifestFunction) == &(want.fetchImageManifestFunction) {
+			t.Errorf("fetchImageManifest functions do not match")
+		}
+		if &(sigImpObj.checkOptsFunction) == &(want.checkOptsFunction) {
+			t.Errorf("checkOptsFunction functions do not match")
+		}
+		require.Equal(t, sigImpObj.skippedImages, want.skippedImages, "skippedImages array is not empty")
+		require.Equal(t, sigImpObj.allowListEnabled, want.allowListEnabled, "allowListEnabled has wrong value")
+		require.Equal(t, sigImpObj.subjectAllowList, want.subjectAllowList, "subjectAllowList array is not empty")
+		require.Equal(t, sigImpObj.rekorURL, want.rekorURL, "rekorURL is different from rekor default")
+		require.Equal(t, sigImpObj.sigstorecache, want.sigstorecache, "sigstorecache is different from fresh object")
+		require.Equal(t, sigImpObj.logger, want.logger, "new logger is not nil")
 	}
 }
 
