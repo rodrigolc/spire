@@ -90,7 +90,7 @@ func TestNew(t *testing.T) {
 		fetchImageManifestFunction: remote.Get,
 		skippedImages:              nil,
 		allowListEnabled:           false,
-		subjectAllowList:           map[string]bool{},
+		subjectAllowList:           nil,
 		rekorURL:                   url.URL{Scheme: rekor.DefaultSchemes[0], Host: rekor.DefaultHost, Path: rekor.DefaultBasePath},
 		sigstorecache:              newcache,
 		checkOptsFunction:          DefaultCheckOpts,
@@ -110,12 +110,12 @@ func TestNew(t *testing.T) {
 		if &(sigImpObj.checkOptsFunction) == &(want.checkOptsFunction) {
 			t.Errorf("checkOptsFunction functions do not match")
 		}
-		require.Equal(t, sigImpObj.skippedImages, want.skippedImages, "skippedImages array is not empty")
-		require.Equal(t, sigImpObj.allowListEnabled, want.allowListEnabled, "allowListEnabled has wrong value")
-		require.Equal(t, sigImpObj.subjectAllowList, want.subjectAllowList, "subjectAllowList array is not empty")
-		require.Equal(t, sigImpObj.rekorURL, want.rekorURL, "rekorURL is different from rekor default")
-		require.Equal(t, sigImpObj.sigstorecache, want.sigstorecache, "sigstorecache is different from fresh object")
-		require.Equal(t, sigImpObj.logger, want.logger, "new logger is not nil")
+		require.Equal(t, want.skippedImages, sigImpObj.skippedImages, "skippedImages array is not empty")
+		require.Equal(t, want.allowListEnabled, sigImpObj.allowListEnabled, "allowListEnabled has wrong value")
+		require.Equal(t, want.subjectAllowList, sigImpObj.subjectAllowList, "subjectAllowList array is not empty")
+		require.Equal(t, want.rekorURL, sigImpObj.rekorURL, "rekorURL is different from rekor default")
+		require.Equal(t, want.sigstorecache, sigImpObj.sigstorecache, "sigstorecache is different from fresh object")
+		require.Equal(t, want.logger, sigImpObj.logger, "new logger is not nil")
 	}
 }
 
