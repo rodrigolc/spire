@@ -119,16 +119,62 @@ func TestNew(t *testing.T) {
 	}
 }
 
-func TestSigstoreimpl_FetchImageSignatures(t *testing.T) {
-	type fields struct {
-		verifyFunction             func(context context.Context, ref name.Reference, co *cosign.CheckOpts) ([]oci.Signature, bool, error)
-		fetchImageManifestFunction func(ref name.Reference, options ...remote.Option) (*remote.Descriptor, error)
+type verifyFunctionArguments struct {
+	called  bool
+	context context.Context
+	ref     name.Reference
+	options *cosign.CheckOpts
+}
+
+func createVerifyFunction(returnSignatures []oci.Signature, returnBundleVerified bool, returnError error) func(verifyArguments *verifyFunctionArguments) func(context context.Context, ref name.Reference, co *cosign.CheckOpts) ([]oci.Signature, bool, error) {
+	bindVerifyArgumentsFunction := func(verifyArguments *verifyFunctionArguments) func(context context.Context, ref name.Reference, co *cosign.CheckOpts) ([]oci.Signature, bool, error) {
+		verifyFunction := func(context context.Context, ref name.Reference, co *cosign.CheckOpts) ([]oci.Signature, bool, error) {
+			verifyArguments.called = true
+			verifyArguments.context = context
+			verifyArguments.ref = ref
+			verifyArguments.options = co
+			return returnSignatures, returnBundleVerified, returnError
+		}
+		return verifyFunction
 	}
-	type args struct {
-		imageName string
+	return bindVerifyArgumentsFunction
+}
+
+func createNilVerifyFunction() func(verifyArguments *verifyFunctionArguments) func(context context.Context, ref name.Reference, co *cosign.CheckOpts) ([]oci.Signature, bool, error) {
+	bindVerifyArgumentsFunction := func(verifyArguments *verifyFunctionArguments) func(context context.Context, ref name.Reference, co *cosign.CheckOpts) ([]oci.Signature, bool, error) {
+		return nil
 	}
+	return bindVerifyArgumentsFunction
+}
+
+type fetchFunctionArguments struct {
+	called  bool
+	ref     name.Reference
+	options []remote.Option
+}
+
+func createFetchFunction(returnDescriptor *remote.Descriptor, returnError error) func(fetchArguments *fetchFunctionArguments) func(ref name.Reference, options ...remote.Option) (*remote.Descriptor, error) {
+	bindFetchArgumentsFunction := func(fetchArguments *fetchFunctionArguments) func(ref name.Reference, options ...remote.Option) (*remote.Descriptor, error) {
+		fetchFunction := func(ref name.Reference, options ...remote.Option) (*remote.Descriptor, error) {
+			fetchArguments.called = true
+			fetchArguments.ref = ref
+			fetchArguments.options = options
+			return returnDescriptor, returnError
+		}
+		return fetchFunction
+	}
+	return bindFetchArgumentsFunction
+}
+
+func createNilFetchFunction() func(fetchArguments *fetchFunctionArguments) func(ref name.Reference, options ...remote.Option) (*remote.Descriptor, error) {
+	bindFetchArgumentsFunction := func(fetchArguments *fetchFunctionArguments) func(ref name.Reference, options ...remote.Option) (*remote.Descriptor, error) {
+		return nil
+	}
+	return bindFetchArgumentsFunction
+}
+
+func createEmptyCheckOptsFunction(co *cosign.CheckOpts) func(url.URL) *cosign.CheckOpts {
 	emptyCheckOptsFunction := func(url.URL) *cosign.CheckOpts {
-		co := &cosign.CheckOpts{}
 		co.RekorClient = new(rekor.Rekor)
 		rootCert, _, _ := GenerateRootCa()
 		rootPool := x509.NewCertPool()
@@ -137,6 +183,18 @@ func TestSigstoreimpl_FetchImageSignatures(t *testing.T) {
 
 		return co
 	}
+	return emptyCheckOptsFunction
+}
+
+func TestSigstoreimpl_FetchImageSignatures(t *testing.T) {
+	type fields struct {
+		verifyFunction             func(context context.Context, ref name.Reference, co *cosign.CheckOpts) ([]oci.Signature, bool, error)
+		fetchImageManifestFunction func(ref name.Reference, options ...remote.Option) (*remote.Descriptor, error)
+	}
+	type args struct {
+		imageName string
+	}
+	emptyCheckOpts := &cosign.CheckOpts{}
 
 	tests := []struct {
 		name    string
