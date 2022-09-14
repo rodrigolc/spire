@@ -144,8 +144,11 @@ func createVerifyFunction(returnSignatures []oci.Signature, returnBundleVerified
 
 func createNilVerifyFunction() verifyFunctionBinding {
 	bindVerifyArgumentsFunction := func(t require.TestingT, verifyArguments *verifyFunctionArguments) verifyFunction {
-		require.FailNow(t, "nil verify function should not be called")
-		return nil
+		failFunction := func(context context.Context, ref name.Reference, co *cosign.CheckOpts) ([]oci.Signature, bool, error) {
+			require.FailNow(t, "nil verify function should not be called")
+			return nil, false, nil
+		}
+		return failFunction
 	}
 	return bindVerifyArgumentsFunction
 }
@@ -173,8 +176,11 @@ func createFetchFunction(returnDescriptor *remote.Descriptor, returnError error)
 
 func createNilFetchFunction() fetchFunctionBinding {
 	bindFetchArgumentsFunction := func(t require.TestingT, fetchArguments *fetchFunctionArguments) fetchFunction {
-		require.FailNow(t, "nil fetch function should not be called")
-		return nil
+		failFunction := func(ref name.Reference, options ...remote.Option) (*remote.Descriptor, error) {
+			require.FailNow(t, "nil fetch function should not be called")
+			return nil, nil
+		}
+		return failFunction
 	}
 	return bindFetchArgumentsFunction
 }
