@@ -1104,80 +1104,106 @@ func TestSigstoreimpl_ClearSkipList(t *testing.T) {
 
 func TestSigstoreimpl_ValidateImage(t *testing.T) {
 	type fields struct {
-		verifyFunction             func(context context.Context, ref name.Reference, co *cosign.CheckOpts) ([]oci.Signature, bool, error)
-		fetchImageManifestFunction func(ref name.Reference, options ...remote.Option) (*remote.Descriptor, error)
+		verifyFunction             func(verifyArguments *verifyFunctionArguments) func(context context.Context, ref name.Reference, co *cosign.CheckOpts) ([]oci.Signature, bool, error)
+		fetchImageManifestFunction func(fetchArguments *fetchFunctionArguments) func(ref name.Reference, options ...remote.Option) (*remote.Descriptor, error)
 		skippedImages              map[string]bool
 	}
 	type args struct {
 		ref name.Reference
 	}
 	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		want    bool
-		wantErr bool
+		name                  string
+		fields                fields
+		args                  args
+		wantedFetchArguments  fetchFunctionArguments
+		wantedVerifyArguments verifyFunctionArguments
+		want                  bool
+		wantErr               bool
+		wantedErr             error
 	}{
 		{
 			name: "validate image",
 			fields: fields{
-				verifyFunction: nil,
-				fetchImageManifestFunction: func(ref name.Reference, options ...remote.Option) (*remote.Descriptor, error) {
-					return &remote.Descriptor{
-						Manifest: []byte(`sometext`),
-					}, nil
-				},
+				verifyFunction: createNilVerifyFunction(),
+				fetchImageManifestFunction: createFetchFunction(&remote.Descriptor{
+					Manifest: []byte(`sometext`),
+				}, nil),
 			},
 			args: args{
-				ref: func(d name.Digest, err error) name.Digest { return d }(name.NewDigest("example.com/sampleimage@sha256:5fb2054478353fd8d514056d1745b3a9eef066deadda4b90967af7ca65ce6505")),
+				ref: name.MustParseReference("example.com/sampleimage@sha256:5fb2054478353fd8d514056d1745b3a9eef066deadda4b90967af7ca65ce6505"),
 			},
-			want:    true,
-			wantErr: false,
+			wantedFetchArguments: fetchFunctionArguments{
+				called:  true,
+				ref:     name.MustParseReference("example.com/sampleimage@sha256:5fb2054478353fd8d514056d1745b3a9eef066deadda4b90967af7ca65ce6505"),
+				options: nil,
+			},
+			wantedVerifyArguments: verifyFunctionArguments{},
+			want:                  true,
+			wantErr:               false,
 		},
 		{
 			name: "error on image manifest fetch",
 			fields: fields{
-				verifyFunction: nil,
-				fetchImageManifestFunction: func(ref name.Reference, options ...remote.Option) (*remote.Descriptor, error) {
-					return nil, errors.New("fetch error")
-				},
+				verifyFunction:             createNilVerifyFunction(),
+				fetchImageManifestFunction: createFetchFunction(nil, errors.New("fetch error 123")),
 			},
 			args: args{
-				ref: func(d name.Digest, err error) name.Digest { return d }(name.NewDigest("example.com/sampleimage@sha256:5fb2054478353fd8d514056d1745b3a9eef066deadda4b90967af7ca65ce6505")),
+				ref: name.MustParseReference("example.com/sampleimage@sha256:5fb2054478353fd8d514056d1745b3a9eef066deadda4b90967af7ca65ce6505"),
 			},
-			want:    false,
-			wantErr: true,
+			wantedFetchArguments: fetchFunctionArguments{
+				called:  true,
+				ref:     name.MustParseReference("example.com/sampleimage@sha256:5fb2054478353fd8d514056d1745b3a9eef066deadda4b90967af7ca65ce6505"),
+				options: nil,
+			},
+			want:      false,
+			wantErr:   true,
+			wantedErr: errors.New("fetch error 123"),
 		},
 		{
 			name: "nil image manifest fetch",
 			fields: fields{
-				verifyFunction: nil,
-				fetchImageManifestFunction: func(ref name.Reference, options ...remote.Option) (*remote.Descriptor, error) {
-					return &remote.Descriptor{
-						Manifest: nil,
-					}, nil
-				},
+				verifyFunction: createNilVerifyFunction(),
+				fetchImageManifestFunction: createFetchFunction(&remote.Descriptor{
+					Manifest: nil,
+				}, nil),
 			},
 			args: args{
-				ref: func(d name.Digest, err error) name.Digest { return d }(name.NewDigest("example.com/sampleimage@sha256:5fb2054478353fd8d514056d1745b3a9eef066deadda4b90967af7ca65ce6505")),
+				ref: name.MustParseReference("example.com/sampleimage@sha256:5fb2054478353fd8d514056d1745b3a9eef066deadda4b90967af7ca65ce6505"),
 			},
-			want:    false,
-			wantErr: true,
+			wantedFetchArguments: fetchFunctionArguments{
+				called:  true,
+				ref:     name.MustParseReference("example.com/sampleimage@sha256:5fb2054478353fd8d514056d1745b3a9eef066deadda4b90967af7ca65ce6505"),
+				options: nil,
+			},
+			want:      false,
+			wantErr:   true,
+			wantedErr: errors.New("manifest is empty"),
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			fetchArguments := fetchFunctionArguments{}
+			verifyArguments := verifyFunctionArguments{}
 			sigstore := &sigstoreImpl{
-				verifyFunction:             tt.fields.verifyFunction,
+				verifyFunction:             tt.fields.verifyFunction(&verifyArguments),
+				fetchImageManifestFunction: tt.fields.fetchImageManifestFunction(&fetchArguments),
 				skippedImages:              tt.fields.skippedImages,
-				fetchImageManifestFunction: tt.fields.fetchImageManifestFunction,
 			}
 			got, err := sigstore.ValidateImage(tt.args.ref)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("sigstoreImpl.ValidateImage() error = %v, wantErr %v", err, tt.wantErr)
-				return
+
+			if err != nil {
+				if !tt.wantErr {
+					t.Errorf("sigstoreImpl.ValidateImage() has error, wantErr %v", tt.wantErr)
+				}
+				require.EqualError(t, err, tt.wantedErr.Error(), "sigstoreImpl.ValidateImage() error = %v, wantedErr = %v", err, tt.wantedErr)
+
+			} else if tt.wantErr {
+				t.Errorf("sigstoreImpl.ValidateImage() no error, wantErr = %v, wantedErr %v", tt.wantErr, tt.wantedErr)
 			}
-			require.Equal(t, got, tt.want, "sigstoreImpl.ValidateImage() = %v, want %v", got, tt.want)
+
+			require.Equal(t, tt.want, got, "sigstoreImpl.ValidateImage() = %v, want %v", got, tt.want)
+			require.Equal(t, tt.wantedFetchArguments, fetchArguments, "sigstoreImpl.ValidateImage() fetchArguments = %v, want %v", fetchArguments, tt.wantedFetchArguments)
+			require.Equal(t, tt.wantedVerifyArguments, verifyArguments, "sigstoreImpl.ValidateImage() verifyArguments = %v, want %v", verifyArguments, tt.wantedVerifyArguments)
 		})
 	}
 }
