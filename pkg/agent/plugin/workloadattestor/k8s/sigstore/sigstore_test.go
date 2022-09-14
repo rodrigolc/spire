@@ -1667,57 +1667,58 @@ func Test_getBundleSignatureContent(t *testing.T) {
 
 func TestSigstoreimpl_AttestContainerSignatures(t *testing.T) {
 	type fields struct {
-		verifyFunction             func(context context.Context, ref name.Reference, co *cosign.CheckOpts) ([]oci.Signature, bool, error)
-		fetchImageManifestFunction func(ref name.Reference, options ...remote.Option) (*remote.Descriptor, error)
+		verifyFunction             verifyFunctionBinding
+		fetchImageManifestFunction fetchFunctionBinding
 		skippedImages              map[string]bool
 		rekorURL                   url.URL
 	}
 
-	emptyCheckOptsFunction := func(url.URL) *cosign.CheckOpts {
-		co := &cosign.CheckOpts{}
-		co.RekorClient = new(rekor.Rekor)
-		rootCert, _, _ := GenerateRootCa()
-		rootPool := x509.NewCertPool()
-		rootPool.AddCert(rootCert)
-		co.RootCerts = rootPool
-
-		return co
-	}
+	emptyCheckOpts := &cosign.CheckOpts{}
 
 	tests := []struct {
-		name    string
-		fields  fields
-		status  corev1.ContainerStatus
-		want    []string
-		wantErr bool
+		name                  string
+		fields                fields
+		status                corev1.ContainerStatus
+		wantedFetchArguments  fetchFunctionArguments
+		wantedVerifyArguments verifyFunctionArguments
+		want                  []string
+		wantErr               bool
+		wantedErr             error
 	}{
 		{
 			name: "Attest image with signature",
 			fields: fields{
-				verifyFunction: func(context context.Context, ref name.Reference, co *cosign.CheckOpts) ([]oci.Signature, bool, error) {
-					return []oci.Signature{
-						signature{
-							payload: []byte(`{"critical": {"identity": {"docker-reference": "docker-registry.com/some/image"},"image": {"docker-manifest-digest": "02c15a8d1735c65bb8ca86c716615d3c0d8beb87dc68ed88bb49192f90b184e2"},"type": "some type"},"optional": {"subject": "spirex@example.com","key2": "value 2","key3": "value 3"}}`),
-							bundle: &bundle.RekorBundle{
-								Payload: bundle.RekorPayload{
-									Body:           "ewogICJzcGVjIjogewogICAgInNpZ25hdHVyZSI6IHsKICAgICAgImNvbnRlbnQiOiAiTUVVQ0lRQ3llbThHY3Iwc1BGTVA3ZlRYYXpDTjU3TmNONStNanhKdzlPbzB4MmVNK0FJZ2RnQlA5NkJPMVRlL05kYmpIYlVlYjBCVXllNmRlUmdWdFFFdjVObzVzbUE9IgogICAgfQogIH0KfQ==",
-									LogID:          "samplelogID",
-									IntegratedTime: 12345,
-								},
+				verifyFunction: createVerifyFunction([]oci.Signature{
+					signature{
+						payload: []byte(`{"critical": {"identity": {"docker-reference": "docker-registry.com/some/image"},"image": {"docker-manifest-digest": "02c15a8d1735c65bb8ca86c716615d3c0d8beb87dc68ed88bb49192f90b184e2"},"type": "some type"},"optional": {"subject": "spirex@example.com","key2": "value 2","key3": "value 3"}}`),
+						bundle: &bundle.RekorBundle{
+							Payload: bundle.RekorPayload{
+								Body:           "ewogICJzcGVjIjogewogICAgInNpZ25hdHVyZSI6IHsKICAgICAgImNvbnRlbnQiOiAiTUVVQ0lRQ3llbThHY3Iwc1BGTVA3ZlRYYXpDTjU3TmNONStNanhKdzlPbzB4MmVNK0FJZ2RnQlA5NkJPMVRlL05kYmpIYlVlYjBCVXllNmRlUmdWdFFFdjVObzVzbUE9IgogICAgfQogIH0KfQ==",
+								LogID:          "samplelogID",
+								IntegratedTime: 12345,
 							},
 						},
-					}, true, nil
-				},
-				fetchImageManifestFunction: func(ref name.Reference, options ...remote.Option) (*remote.Descriptor, error) {
-					return &remote.Descriptor{
-						Manifest: []byte("sometext"),
-					}, nil
-				},
+					},
+				}, true, nil),
+				fetchImageManifestFunction: createFetchFunction(&remote.Descriptor{
+					Manifest: []byte("sometext"),
+				}, nil),
 			},
 			status: corev1.ContainerStatus{
 				Image:       "spire-agent-sigstore-1",
 				ImageID:     "docker-registry.com/some/image@sha256:5fb2054478353fd8d514056d1745b3a9eef066deadda4b90967af7ca65ce6505",
 				ContainerID: "000000",
+			},
+			wantedFetchArguments: fetchFunctionArguments{
+				called:  true,
+				ref:     name.MustParseReference("docker-registry.com/some/image@sha256:5fb2054478353fd8d514056d1745b3a9eef066deadda4b90967af7ca65ce6505"),
+				options: nil,
+			},
+			wantedVerifyArguments: verifyFunctionArguments{
+				called:  true,
+				context: context.Background(),
+				ref:     name.MustParseReference("docker-registry.com/some/image@sha256:5fb2054478353fd8d514056d1745b3a9eef066deadda4b90967af7ca65ce6505"),
+				options: emptyCheckOpts,
 			},
 			want: []string{
 				"000000:image-signature-subject:spirex@example.com", "000000:image-signature-content:MEUCIQCyem8Gcr0sPFMP7fTXazCN57NcN5+MjxJw9Oo0x2eM+AIgdgBP96BO1Te/NdbjHbUeb0BUye6deRgVtQEv5No5smA=", "000000:image-signature-logid:samplelogID", "000000:image-signature-integrated-time:12345", "sigstore-validation:passed",
@@ -1727,14 +1728,10 @@ func TestSigstoreimpl_AttestContainerSignatures(t *testing.T) {
 		{
 			name: "Attest skipped image",
 			fields: fields{
-				verifyFunction: func(context context.Context, ref name.Reference, co *cosign.CheckOpts) ([]oci.Signature, bool, error) {
-					return nil, true, nil
-				},
-				fetchImageManifestFunction: func(ref name.Reference, options ...remote.Option) (*remote.Descriptor, error) {
-					return &remote.Descriptor{
-						Manifest: []byte("sometext"),
-					}, nil
-				},
+				verifyFunction: createNilVerifyFunction(),
+				fetchImageManifestFunction: createFetchFunction(&remote.Descriptor{
+					Manifest: []byte("sometext"),
+				}, nil),
 				skippedImages: map[string]bool{
 					"docker-registry.com/some/image@sha256:5fb2054478353fd8d514056d1745b3a9eef066deadda4b90967af7ca65ce6505": true,
 				},
@@ -1752,29 +1749,44 @@ func TestSigstoreimpl_AttestContainerSignatures(t *testing.T) {
 		{
 			name: "Attest image with no signature",
 			fields: fields{
-				verifyFunction: func(context context.Context, ref name.Reference, co *cosign.CheckOpts) ([]oci.Signature, bool, error) {
-					return nil, true, fmt.Errorf("no signature found")
-				},
-				fetchImageManifestFunction: func(ref name.Reference, options ...remote.Option) (*remote.Descriptor, error) {
-					return &remote.Descriptor{
-						Manifest: []byte("sometext"),
-					}, nil
-				},
+				verifyFunction: createVerifyFunction(nil, true, fmt.Errorf("no signature found")),
+				fetchImageManifestFunction: createFetchFunction(&remote.Descriptor{
+					Manifest: []byte("sometext"),
+				}, nil),
 			},
 			status: corev1.ContainerStatus{
 				Image:       "spire-agent-sigstore-3",
 				ImageID:     "docker-registry.com/some/image@sha256:5fb2054478353fd8d514056d1745b3a9eef066deadda4b90967af7ca65ce6505",
 				ContainerID: "222222",
 			},
-			want:    nil,
-			wantErr: true,
+			wantedFetchArguments: fetchFunctionArguments{
+				called:  true,
+				ref:     name.MustParseReference("docker-registry.com/some/image@sha256:5fb2054478353fd8d514056d1745b3a9eef066deadda4b90967af7ca65ce6505"),
+				options: nil,
+			},
+			wantedVerifyArguments: verifyFunctionArguments{
+				called:  true,
+				context: context.Background(),
+				ref:     name.MustParseReference("docker-registry.com/some/image@sha256:5fb2054478353fd8d514056d1745b3a9eef066deadda4b90967af7ca65ce6505"),
+				options: emptyCheckOpts,
+			},
+			want:      nil,
+			wantErr:   true,
+			wantedErr: fmt.Errorf("error verifying signature: %w", errors.New("no signature found")),
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			co := &cosign.CheckOpts{}
+			emptyCheckOptsFunction := createEmptyCheckOptsFunction(co)
+			if tt.wantedVerifyArguments.options == emptyCheckOpts {
+				tt.wantedVerifyArguments.options = emptyCheckOptsFunction(url.URL{})
+			}
+			fetchArguments := fetchFunctionArguments{}
+			verifyArguments := verifyFunctionArguments{}
 			sigstore := &sigstoreImpl{
-				verifyFunction:             tt.fields.verifyFunction,
-				fetchImageManifestFunction: tt.fields.fetchImageManifestFunction,
+				verifyFunction:             tt.fields.verifyFunction(t, &verifyArguments),
+				fetchImageManifestFunction: tt.fields.fetchImageManifestFunction(t, &fetchArguments),
 				skippedImages:              tt.fields.skippedImages,
 				rekorURL:                   tt.fields.rekorURL,
 				sigstorecache:              NewCache(maximumAmountCache),
@@ -1782,11 +1794,20 @@ func TestSigstoreimpl_AttestContainerSignatures(t *testing.T) {
 				logger:                     hclog.Default(),
 			}
 			got, err := sigstore.AttestContainerSignatures(context.Background(), &tt.status)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("sigstoreImpl.AttestContainerSignatures() error = %v, wantErr %v", err, tt.wantErr)
-				return
+
+			if err != nil {
+				if !tt.wantErr {
+					t.Errorf("sigstoreImpl.AttestContainerSignatures() has error, wantErr %v", tt.wantErr)
+				}
+				require.EqualError(t, err, tt.wantedErr.Error(), "sigstoreImpl.AttestContainerSignatures() error = %v, wantedErr = %v", err, tt.wantedErr)
+			} else if tt.wantErr {
+				t.Errorf("sigstoreImpl.AttestContainerSignatures() no error, wantErr = %v, wantedErr %v", tt.wantErr, tt.wantedErr)
 			}
-			require.Equal(t, got, tt.want, "sigstoreImpl.AttestContainerSignatures() = %v, want %v", got, tt.want)
+
+			require.Equal(t, tt.want, got, "sigstoreImpl.AttestContainerSignatures() = %v, want %v", got, tt.want)
+			require.Equal(t, tt.wantedFetchArguments, fetchArguments, "sigstoreImpl.AttestContainerSignatures() fetchArguments = %v, wantedFetchArguments = %v", fetchArguments, tt.wantedFetchArguments)
+			require.Equal(t, tt.wantedVerifyArguments, verifyArguments, "sigstoreImpl.AttestContainerSignatures() verifyArguments = %v, wantedVerifyArguments = %v", verifyArguments, tt.wantedVerifyArguments)
+
 		})
 	}
 }
