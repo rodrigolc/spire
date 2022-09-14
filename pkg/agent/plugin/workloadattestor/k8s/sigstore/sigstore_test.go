@@ -125,23 +125,26 @@ type verifyFunctionArguments struct {
 	ref     name.Reference
 	options *cosign.CheckOpts
 }
+type verifyFunction func(context.Context, name.Reference, *cosign.CheckOpts) ([]oci.Signature, bool, error)
+type verifyFunctionBinding func(require.TestingT, *verifyFunctionArguments) verifyFunction
 
-func createVerifyFunction(returnSignatures []oci.Signature, returnBundleVerified bool, returnError error) func(verifyArguments *verifyFunctionArguments) func(context context.Context, ref name.Reference, co *cosign.CheckOpts) ([]oci.Signature, bool, error) {
-	bindVerifyArgumentsFunction := func(verifyArguments *verifyFunctionArguments) func(context context.Context, ref name.Reference, co *cosign.CheckOpts) ([]oci.Signature, bool, error) {
-		verifyFunction := func(context context.Context, ref name.Reference, co *cosign.CheckOpts) ([]oci.Signature, bool, error) {
+func createVerifyFunction(returnSignatures []oci.Signature, returnBundleVerified bool, returnError error) verifyFunctionBinding {
+	bindVerifyArgumentsFunction := func(t require.TestingT, verifyArguments *verifyFunctionArguments) verifyFunction {
+		newVerifyFunction := func(context context.Context, ref name.Reference, co *cosign.CheckOpts) ([]oci.Signature, bool, error) {
 			verifyArguments.called = true
 			verifyArguments.context = context
 			verifyArguments.ref = ref
 			verifyArguments.options = co
 			return returnSignatures, returnBundleVerified, returnError
 		}
-		return verifyFunction
+		return newVerifyFunction
 	}
 	return bindVerifyArgumentsFunction
 }
 
-func createNilVerifyFunction() func(verifyArguments *verifyFunctionArguments) func(context context.Context, ref name.Reference, co *cosign.CheckOpts) ([]oci.Signature, bool, error) {
-	bindVerifyArgumentsFunction := func(verifyArguments *verifyFunctionArguments) func(context context.Context, ref name.Reference, co *cosign.CheckOpts) ([]oci.Signature, bool, error) {
+func createNilVerifyFunction() verifyFunctionBinding {
+	bindVerifyArgumentsFunction := func(t require.TestingT, verifyArguments *verifyFunctionArguments) verifyFunction {
+		require.FailNow(t, "nil verify function should not be called")
 		return nil
 	}
 	return bindVerifyArgumentsFunction
@@ -152,22 +155,25 @@ type fetchFunctionArguments struct {
 	ref     name.Reference
 	options []remote.Option
 }
+type fetchFunction func(ref name.Reference, options ...remote.Option) (*remote.Descriptor, error)
+type fetchFunctionBinding func(require.TestingT, *fetchFunctionArguments) fetchFunction
 
-func createFetchFunction(returnDescriptor *remote.Descriptor, returnError error) func(fetchArguments *fetchFunctionArguments) func(ref name.Reference, options ...remote.Option) (*remote.Descriptor, error) {
-	bindFetchArgumentsFunction := func(fetchArguments *fetchFunctionArguments) func(ref name.Reference, options ...remote.Option) (*remote.Descriptor, error) {
-		fetchFunction := func(ref name.Reference, options ...remote.Option) (*remote.Descriptor, error) {
+func createFetchFunction(returnDescriptor *remote.Descriptor, returnError error) fetchFunctionBinding {
+	bindFetchArgumentsFunction := func(t require.TestingT, fetchArguments *fetchFunctionArguments) fetchFunction {
+		newFetchFunction := func(ref name.Reference, options ...remote.Option) (*remote.Descriptor, error) {
 			fetchArguments.called = true
 			fetchArguments.ref = ref
 			fetchArguments.options = options
 			return returnDescriptor, returnError
 		}
-		return fetchFunction
+		return newFetchFunction
 	}
 	return bindFetchArgumentsFunction
 }
 
-func createNilFetchFunction() func(fetchArguments *fetchFunctionArguments) func(ref name.Reference, options ...remote.Option) (*remote.Descriptor, error) {
-	bindFetchArgumentsFunction := func(fetchArguments *fetchFunctionArguments) func(ref name.Reference, options ...remote.Option) (*remote.Descriptor, error) {
+func createNilFetchFunction() fetchFunctionBinding {
+	bindFetchArgumentsFunction := func(t require.TestingT, fetchArguments *fetchFunctionArguments) fetchFunction {
+		require.FailNow(t, "nil fetch function should not be called")
 		return nil
 	}
 	return bindFetchArgumentsFunction
@@ -188,8 +194,8 @@ func createEmptyCheckOptsFunction(co *cosign.CheckOpts) func(url.URL) *cosign.Ch
 
 func TestSigstoreimpl_FetchImageSignatures(t *testing.T) {
 	type fields struct {
-		verifyFunction             func(verifyArguments *verifyFunctionArguments) func(context context.Context, ref name.Reference, co *cosign.CheckOpts) ([]oci.Signature, bool, error)
-		fetchImageManifestFunction func(fetchArguments *fetchFunctionArguments) func(ref name.Reference, options ...remote.Option) (*remote.Descriptor, error)
+		verifyFunction             verifyFunctionBinding
+		fetchImageManifestFunction fetchFunctionBinding
 	}
 	type args struct {
 		imageName string
@@ -454,8 +460,8 @@ func TestSigstoreimpl_FetchImageSignatures(t *testing.T) {
 			fetchArguments := fetchFunctionArguments{}
 			verifyArguments := verifyFunctionArguments{}
 			sigstore := sigstoreImpl{
-				verifyFunction:             tt.fields.verifyFunction(&verifyArguments),
-				fetchImageManifestFunction: tt.fields.fetchImageManifestFunction(&fetchArguments),
+				verifyFunction:             tt.fields.verifyFunction(t, &verifyArguments),
+				fetchImageManifestFunction: tt.fields.fetchImageManifestFunction(t, &fetchArguments),
 				sigstorecache:              NewCache(maximumAmountCache),
 				checkOptsFunction:          emptyCheckOptsFunction,
 			}
@@ -1104,8 +1110,8 @@ func TestSigstoreimpl_ClearSkipList(t *testing.T) {
 
 func TestSigstoreimpl_ValidateImage(t *testing.T) {
 	type fields struct {
-		verifyFunction             func(verifyArguments *verifyFunctionArguments) func(context context.Context, ref name.Reference, co *cosign.CheckOpts) ([]oci.Signature, bool, error)
-		fetchImageManifestFunction func(fetchArguments *fetchFunctionArguments) func(ref name.Reference, options ...remote.Option) (*remote.Descriptor, error)
+		verifyFunction             verifyFunctionBinding
+		fetchImageManifestFunction fetchFunctionBinding
 		skippedImages              map[string]bool
 	}
 	type args struct {
@@ -1185,8 +1191,8 @@ func TestSigstoreimpl_ValidateImage(t *testing.T) {
 			fetchArguments := fetchFunctionArguments{}
 			verifyArguments := verifyFunctionArguments{}
 			sigstore := &sigstoreImpl{
-				verifyFunction:             tt.fields.verifyFunction(&verifyArguments),
-				fetchImageManifestFunction: tt.fields.fetchImageManifestFunction(&fetchArguments),
+				verifyFunction:             tt.fields.verifyFunction(t, &verifyArguments),
+				fetchImageManifestFunction: tt.fields.fetchImageManifestFunction(t, &fetchArguments),
 				skippedImages:              tt.fields.skippedImages,
 			}
 			got, err := sigstore.ValidateImage(tt.args.ref)
