@@ -57,11 +57,7 @@ func createCertificate(template *x509.Certificate, parent *x509.Certificate, pub
 		return nil, err
 	}
 
-	cert, err := x509.ParseCertificate(certBytes)
-	if err != nil {
-		return nil, err
-	}
-	return cert, nil
+	return x509.ParseCertificate(certBytes)
 }
 
 func GenerateRootCa() (*x509.Certificate, *ecdsa.PrivateKey, error) {
@@ -84,11 +80,7 @@ func GenerateRootCa() (*x509.Certificate, *ecdsa.PrivateKey, error) {
 	}
 
 	cert, err := createCertificate(rootTemplate, rootTemplate, &priv.PublicKey, priv)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return cert, priv, nil
+	return cert, priv, err
 }
 
 func TestNew(t *testing.T) {
