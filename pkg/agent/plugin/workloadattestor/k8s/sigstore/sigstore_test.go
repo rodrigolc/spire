@@ -1820,11 +1820,12 @@ func TestSigstoreimpl_SetRekorURL(t *testing.T) {
 		rekorURL string
 	}
 	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		want    url.URL
-		wantErr bool
+		name      string
+		fields    fields
+		args      args
+		want      url.URL
+		wantErr   bool
+		wantedErr error
 	}{
 		{
 			name: "SetRekorURL",
@@ -1855,7 +1856,8 @@ func TestSigstoreimpl_SetRekorURL(t *testing.T) {
 				Scheme: "https",
 				Host:   "non.empty.url",
 			},
-			wantErr: true,
+			wantErr:   true,
+			wantedErr: fmt.Errorf("rekor URL is empty"),
 		},
 		{
 			name: "SetRekorURL with invalid URL",
@@ -1865,8 +1867,9 @@ func TestSigstoreimpl_SetRekorURL(t *testing.T) {
 			args: args{
 				rekorURL: "http://invalid.{{}))}.url.com", // invalid url
 			},
-			want:    url.URL{},
-			wantErr: true,
+			want:      url.URL{},
+			wantErr:   true,
+			wantedErr: fmt.Errorf("failed parsing rekor URI: parse %q: invalid character %q in host name", "http://invalid.{{}))}.url.com", "{"),
 		},
 		{
 			name: "SetRekorURL with empty host url",
@@ -1876,8 +1879,9 @@ func TestSigstoreimpl_SetRekorURL(t *testing.T) {
 			args: args{
 				rekorURL: "path-no-host", // URI parser uses this as path, not host
 			},
-			want:    url.URL{},
-			wantErr: true,
+			want:      url.URL{},
+			wantErr:   true,
+			wantedErr: fmt.Errorf("host is required on rekor URL"),
 		},
 		{
 			name: "SetRekorURL with invalid URL scheme",
@@ -1887,8 +1891,9 @@ func TestSigstoreimpl_SetRekorURL(t *testing.T) {
 			args: args{
 				rekorURL: "abc://invalid.url.com", // invalid scheme
 			},
-			want:    url.URL{},
-			wantErr: true,
+			want:      url.URL{},
+			wantErr:   true,
+			wantedErr: fmt.Errorf("invalid rekor URL Scheme %q", "abc"),
 		},
 	}
 	for _, tt := range tests {
@@ -1896,8 +1901,14 @@ func TestSigstoreimpl_SetRekorURL(t *testing.T) {
 			sigstore := &sigstoreImpl{
 				rekorURL: tt.fields.rekorURL,
 			}
-			if err := sigstore.SetRekorURL(tt.args.rekorURL); (err != nil) != tt.wantErr {
-				t.Errorf("sigstoreImpl.SetRekorURL() error = %v, wantErr %v", err, tt.wantErr)
+			err := sigstore.SetRekorURL(tt.args.rekorURL)
+			if err != nil {
+				if !tt.wantErr {
+					t.Errorf("sigstoreImpl.SetRekorURL() has error, wantErr %v", tt.wantErr)
+				}
+				require.EqualError(t, err, tt.wantedErr.Error(), "sigstoreImpl.SetRekorURL() error = %v, wantedErr = %v", err, tt.wantedErr)
+			} else if tt.wantErr {
+				t.Errorf("sigstoreImpl.SetRekorURL() no error, wantErr = %v, wantedErr %v", tt.wantErr, tt.wantedErr)
 			}
 			require.Equal(t, sigstore.rekorURL, tt.want, "sigstoreImpl.SetRekorURL() = %v, want %v", sigstore.rekorURL, tt.want)
 		})
