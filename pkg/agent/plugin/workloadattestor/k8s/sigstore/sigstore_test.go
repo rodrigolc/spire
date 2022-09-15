@@ -570,50 +570,18 @@ func TestSigstoreimpl_ExtractSelectorsFromSignatures(t *testing.T) {
 
 type noPayloadSignature signature
 
-func (noPayloadSignature) Annotations() (map[string]string, error) {
-	return nil, nil
-}
-
 func (noPayloadSignature) Payload() ([]byte, error) {
 	return nil, errors.New("no payload test")
 }
 
-func (noPayloadSignature) Base64Signature() (string, error) {
-	return "", nil
-}
-
-func (s noPayloadSignature) Cert() (*x509.Certificate, error) {
-	return s.cert, nil
-}
-
-func (noPayloadSignature) Chain() ([]*x509.Certificate, error) {
-	return nil, nil
-}
-
-func (noPayloadSignature) Bundle() (*bundle.RekorBundle, error) {
-	return nil, nil
-}
-
 type noBundleSignature signature
-
-func (noBundleSignature) Annotations() (map[string]string, error) {
-	return nil, nil
-}
 
 func (s noBundleSignature) Payload() ([]byte, error) {
 	return s.payload, nil
 }
 
-func (noBundleSignature) Base64Signature() (string, error) {
-	return "", nil
-}
-
 func (s noBundleSignature) Cert() (*x509.Certificate, error) {
 	return s.cert, nil
-}
-
-func (noBundleSignature) Chain() ([]*x509.Certificate, error) {
-	return nil, nil
 }
 
 func (s noBundleSignature) Bundle() (*bundle.RekorBundle, error) {
@@ -1749,26 +1717,10 @@ func TestSigstoreimpl_SetRekorURL(t *testing.T) {
 
 type noCertSignature signature
 
-func (noCertSignature) Annotations() (map[string]string, error) {
-	return nil, nil
-}
-
 func (s noCertSignature) Payload() ([]byte, error) {
 	return s.payload, nil
 }
 
-func (noCertSignature) Base64Signature() (string, error) {
-	return "", nil
-}
-
 func (noCertSignature) Cert() (*x509.Certificate, error) {
 	return nil, errors.New("no cert test")
-}
-
-func (noCertSignature) Chain() ([]*x509.Certificate, error) {
-	return nil, nil
-}
-
-func (noCertSignature) Bundle() (*bundle.RekorBundle, error) {
-	return nil, nil
 }
