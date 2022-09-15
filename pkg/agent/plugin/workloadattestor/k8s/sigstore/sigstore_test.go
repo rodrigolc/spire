@@ -407,9 +407,7 @@ func TestSigstoreimpl_FetchImageSignatures(t *testing.T) {
 				t.Errorf("sigstoreImpl.FetchImageSignatures() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("sigstoreImpl.FetchImageSignatures() = %v, want %v", got, tt.want)
-			}
+			require.Equal(t, got, tt.want, "sigstoreImpl.FetchImageSignatures() = %v, want %v", got, tt.want)
 		})
 	}
 }
