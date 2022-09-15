@@ -100,7 +100,7 @@ func TestNew(t *testing.T) {
 
 	if sigImpObj, ok := sigstore.(*sigstoreImpl); !ok {
 		t.Errorf("object type does not match")
-	} else {
+	} else { //test each field manually since require.Equal does not work on function pointers
 		if &(sigImpObj.verifyFunction) == &(want.verifyFunction) {
 			t.Errorf("verify functions do not match")
 		}
