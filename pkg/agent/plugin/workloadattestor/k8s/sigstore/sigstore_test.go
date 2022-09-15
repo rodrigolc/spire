@@ -204,6 +204,7 @@ func TestSigstoreimpl_FetchImageSignatures(t *testing.T) {
 		wantedVerifyArguments verifyFunctionArguments
 		want                  []oci.Signature
 		wantErr               bool
+		wantedErr             error
 	}{
 		{
 			name: "fetch image with signature",
@@ -276,7 +277,7 @@ func TestSigstoreimpl_FetchImageSignatures(t *testing.T) {
 		{
 			name: "fetch image with no signature",
 			fields: fields{
-				verifyFunction:             createVerifyFunction([]oci.Signature{}, true, errors.New("no matching signatures 2")),
+				verifyFunction:             createVerifyFunction(nil, true, errors.New("no matching signatures 2")),
 				fetchImageManifestFunction: createFetchFunction(&remote.Descriptor{Manifest: []byte("sometext")}, nil),
 			},
 			args: args{
@@ -293,13 +294,14 @@ func TestSigstoreimpl_FetchImageSignatures(t *testing.T) {
 				ref:     name.MustParseReference("docker-registry.com/some/image@sha256:5fb2054478353fd8d514056d1745b3a9eef066deadda4b90967af7ca65ce6505"),
 				options: emptyCheckOpts,
 			},
-			want:    nil,
-			wantErr: true,
+			want:      nil,
+			wantErr:   true,
+			wantedErr: fmt.Errorf("error verifying signature: %w", errors.New("no matching signatures 2")),
 		},
 		{ // TODO: check again, same as above test. should never happen, since the verify function returns an error on empty verified signature list
 			name: "fetch image with no signature and no error",
 			fields: fields{
-				verifyFunction:             createVerifyFunction([]oci.Signature{}, true, errors.New("no matching signatures 2")),
+				verifyFunction:             createVerifyFunction(nil, true, nil),
 				fetchImageManifestFunction: createFetchFunction(&remote.Descriptor{Manifest: []byte("sometext")}, nil),
 			},
 			args: args{
@@ -316,8 +318,9 @@ func TestSigstoreimpl_FetchImageSignatures(t *testing.T) {
 				ref:     name.MustParseReference("docker-registry.com/some/image@sha256:5fb2054478353fd8d514056d1745b3a9eef066deadda4b90967af7ca65ce6505"),
 				options: emptyCheckOpts,
 			},
-			want:    nil,
-			wantErr: true,
+			want:      nil,
+			wantErr:   false,
+			wantedErr: nil,
 		},
 		{
 			name: "fetch image with signature and error",
@@ -326,7 +329,7 @@ func TestSigstoreimpl_FetchImageSignatures(t *testing.T) {
 					signature{
 						payload: []byte(`{"critical": {"identity": {"docker-reference": "docker-registry.com/some/image"},"image": {"docker-manifest-digest": "02c15a8d1735c65bb8ca86c716615d3c0d8beb87dc68ed88bb49192f90b184e2"},"type": "some type"},"optional": {"subject": "spirex@example.com","key2": "value 2","key3": "value 3"}}`),
 					},
-				}, true, errors.New("some error")),
+				}, true, errors.New("unexpected error")),
 				fetchImageManifestFunction: createFetchFunction(&remote.Descriptor{Manifest: []byte("sometext")}, nil),
 			},
 			args: args{
@@ -343,8 +346,9 @@ func TestSigstoreimpl_FetchImageSignatures(t *testing.T) {
 				ref:     name.MustParseReference("docker-registry.com/some/image@sha256:5fb2054478353fd8d514056d1745b3a9eef066deadda4b90967af7ca65ce6505"),
 				options: emptyCheckOpts,
 			},
-			want:    nil,
-			wantErr: true,
+			want:      nil,
+			wantErr:   true,
+			wantedErr: fmt.Errorf("error verifying signature: %w", errors.New("unexpected error")),
 		},
 		{
 			name: "fetch image with signature no error, bundle not verified",
@@ -371,8 +375,9 @@ func TestSigstoreimpl_FetchImageSignatures(t *testing.T) {
 				ref:     name.MustParseReference("docker-registry.com/some/image@sha256:5fb2054478353fd8d514056d1745b3a9eef066deadda4b90967af7ca65ce6505"),
 				options: emptyCheckOpts,
 			},
-			want:    nil,
-			wantErr: true,
+			want:      nil,
+			wantErr:   true,
+			wantedErr: fmt.Errorf("bundle not verified for %q", "docker-registry.com/some/image@sha256:5fb2054478353fd8d514056d1745b3a9eef066deadda4b90967af7ca65ce6505"),
 		},
 		{
 			name: "fetch image with invalid image reference",
@@ -383,8 +388,9 @@ func TestSigstoreimpl_FetchImageSignatures(t *testing.T) {
 			args: args{
 				imageName: "invali|].url.com/some/image@sha256:5fb2054478353fd8d514056d1745b3a9eef066deadda4b90967af7ca65ce6505",
 			},
-			want:    nil,
-			wantErr: true,
+			want:      nil,
+			wantErr:   true,
+			wantedErr: fmt.Errorf("error parsing image reference: %w", errors.New("could not parse reference: invali|].url.com/some/image@sha256:5fb2054478353fd8d514056d1745b3a9eef066deadda4b90967af7ca65ce6505")),
 		},
 		{
 			name: "fetch image with signature, empty rekor url",
@@ -419,7 +425,7 @@ func TestSigstoreimpl_FetchImageSignatures(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "fetch image with invalid image ref",
+			name: "fetch image with wrong image hash",
 			fields: fields{
 				verifyFunction:             createNilVerifyFunction(),
 				fetchImageManifestFunction: createFetchFunction(&remote.Descriptor{Manifest: []byte("sometext")}, nil),
@@ -435,6 +441,7 @@ func TestSigstoreimpl_FetchImageSignatures(t *testing.T) {
 			wantedVerifyArguments: verifyFunctionArguments{},
 			want:                  nil,
 			wantErr:               true,
+			wantedErr:             fmt.Errorf("could not validate image reference digest: %w", errors.New("digest sha256:5fb2054478353fd8d514056d1745b3a9eef066deadda4b90967af7ca65ce6505 does not match sha256:4fb2054478353fd8d514056d1745b3a9eef066deadda4b90967af7ca65ce6505")),
 		},
 	}
 	for _, tt := range tests {
@@ -453,15 +460,22 @@ func TestSigstoreimpl_FetchImageSignatures(t *testing.T) {
 				checkOptsFunction:          emptyCheckOptsFunction,
 			}
 			got, err := sigstore.FetchImageSignatures(context.Background(), tt.args.imageName)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("sigstoreImpl.FetchImageSignatures() error = %v, wantErr %v", err, tt.wantErr)
-				return
+
+			if err != nil {
+				if !tt.wantErr {
+					t.Errorf("sigstoreImpl.FetchImageSignatures() has error, wantErr %v", tt.wantErr)
+				}
+				require.EqualError(t, err, tt.wantedErr.Error(), "sigstoreImpl.FetchImageSignatures() error = %v, wantedErr = %v", err, tt.wantedErr)
+
+			} else if tt.wantErr {
+				t.Errorf("sigstoreImpl.FetchImageSignatures() no error, wantErr = %v, wantedErr %v", tt.wantErr, tt.wantedErr)
 			}
-			require.Equal(t, got, tt.want, "sigstoreImpl.FetchImageSignatures() = %v, want %v", got, tt.want)
 
-			require.Equal(t, fetchArguments, tt.wantedFetchArguments, "sigstoreImpl.FetchImageSignatures() fetchArguments = %v, want %v", fetchArguments, tt.wantedFetchArguments)
+			require.Equal(t, tt.want, got, "sigstoreImpl.FetchImageSignatures() = %v, want %v", got, tt.want)
 
-			require.Equal(t, verifyArguments, tt.wantedVerifyArguments, "sigstoreImpl.FetchImageSignatures() verifyArguments = %v, want %v", verifyArguments, tt.wantedVerifyArguments)
+			require.Equal(t, tt.wantedFetchArguments, fetchArguments, "sigstoreImpl.FetchImageSignatures() fetchArguments = %v, want %v", fetchArguments, tt.wantedFetchArguments)
+
+			require.Equal(t, tt.wantedVerifyArguments, verifyArguments, "sigstoreImpl.FetchImageSignatures() verifyArguments = %v, want %v", verifyArguments, tt.wantedVerifyArguments)
 
 		})
 	}
