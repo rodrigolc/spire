@@ -31,26 +31,6 @@ const (
 	maximumAmountCache = 10
 )
 
-type signature struct {
-	oci.Signature
-
-	payload []byte
-	cert    *x509.Certificate
-	bundle  *bundle.RekorBundle
-}
-
-func (s signature) Payload() ([]byte, error) {
-	return s.payload, nil
-}
-
-func (s signature) Cert() (*x509.Certificate, error) {
-	return s.cert, nil
-}
-
-func (s signature) Bundle() (*bundle.RekorBundle, error) {
-	return s.bundle, nil
-}
-
 func createCertificate(template *x509.Certificate, parent *x509.Certificate, pub interface{}, priv crypto.Signer) (*x509.Certificate, error) {
 	certBytes, err := x509.CreateCertificate(rand.Reader, template, parent, pub, priv)
 	if err != nil {
@@ -117,85 +97,6 @@ func TestNew(t *testing.T) {
 		require.Equal(t, want.sigstorecache, sigImpObj.sigstorecache, "sigstorecache is different from fresh object")
 		require.Equal(t, want.logger, sigImpObj.logger, "new logger is not nil")
 	}
-}
-
-type verifyFunctionArguments struct {
-	called  bool
-	context context.Context
-	ref     name.Reference
-	options *cosign.CheckOpts
-}
-type verifyFunction func(context.Context, name.Reference, *cosign.CheckOpts) ([]oci.Signature, bool, error)
-type verifyFunctionBinding func(require.TestingT, *verifyFunctionArguments) verifyFunction
-
-func createVerifyFunction(returnSignatures []oci.Signature, returnBundleVerified bool, returnError error) verifyFunctionBinding {
-	bindVerifyArgumentsFunction := func(t require.TestingT, verifyArguments *verifyFunctionArguments) verifyFunction {
-		newVerifyFunction := func(context context.Context, ref name.Reference, co *cosign.CheckOpts) ([]oci.Signature, bool, error) {
-			verifyArguments.called = true
-			verifyArguments.context = context
-			verifyArguments.ref = ref
-			verifyArguments.options = co
-			return returnSignatures, returnBundleVerified, returnError
-		}
-		return newVerifyFunction
-	}
-	return bindVerifyArgumentsFunction
-}
-
-func createNilVerifyFunction() verifyFunctionBinding {
-	bindVerifyArgumentsFunction := func(t require.TestingT, verifyArguments *verifyFunctionArguments) verifyFunction {
-		failFunction := func(context context.Context, ref name.Reference, co *cosign.CheckOpts) ([]oci.Signature, bool, error) {
-			require.FailNow(t, "nil verify function should not be called")
-			return nil, false, nil
-		}
-		return failFunction
-	}
-	return bindVerifyArgumentsFunction
-}
-
-type fetchFunctionArguments struct {
-	called  bool
-	ref     name.Reference
-	options []remote.Option
-}
-type fetchFunction func(ref name.Reference, options ...remote.Option) (*remote.Descriptor, error)
-type fetchFunctionBinding func(require.TestingT, *fetchFunctionArguments) fetchFunction
-
-func createFetchFunction(returnDescriptor *remote.Descriptor, returnError error) fetchFunctionBinding {
-	bindFetchArgumentsFunction := func(t require.TestingT, fetchArguments *fetchFunctionArguments) fetchFunction {
-		newFetchFunction := func(ref name.Reference, options ...remote.Option) (*remote.Descriptor, error) {
-			fetchArguments.called = true
-			fetchArguments.ref = ref
-			fetchArguments.options = options
-			return returnDescriptor, returnError
-		}
-		return newFetchFunction
-	}
-	return bindFetchArgumentsFunction
-}
-
-func createNilFetchFunction() fetchFunctionBinding {
-	bindFetchArgumentsFunction := func(t require.TestingT, fetchArguments *fetchFunctionArguments) fetchFunction {
-		failFunction := func(ref name.Reference, options ...remote.Option) (*remote.Descriptor, error) {
-			require.FailNow(t, "nil fetch function should not be called")
-			return nil, nil
-		}
-		return failFunction
-	}
-	return bindFetchArgumentsFunction
-}
-
-func createEmptyCheckOptsFunction(co *cosign.CheckOpts) func(url.URL) *cosign.CheckOpts {
-	emptyCheckOptsFunction := func(url.URL) *cosign.CheckOpts {
-		co.RekorClient = new(rekor.Rekor)
-		rootCert, _, _ := GenerateRootCa()
-		rootPool := x509.NewCertPool()
-		rootPool.AddCert(rootCert)
-		co.RootCerts = rootPool
-
-		return co
-	}
-	return emptyCheckOptsFunction
 }
 
 func TestSigstoreimpl_FetchImageSignatures(t *testing.T) {
@@ -710,25 +611,6 @@ func TestSigstoreimpl_ExtractSelectorsFromSignatures(t *testing.T) {
 	}
 }
 
-type noPayloadSignature signature
-
-func (noPayloadSignature) Payload() ([]byte, error) {
-	return nil, errors.New("no payload test")
-}
-
-type noBundleSignature signature
-
-func (s noBundleSignature) Payload() ([]byte, error) {
-	return s.payload, nil
-}
-
-func (s noBundleSignature) Cert() (*x509.Certificate, error) {
-	return s.cert, nil
-}
-
-func (s noBundleSignature) Bundle() (*bundle.RekorBundle, error) {
-	return nil, fmt.Errorf("no bundle test")
-}
 func Test_certSubject(t *testing.T) {
 	type args struct {
 		c *x509.Certificate
@@ -1915,6 +1797,46 @@ func TestSigstoreimpl_SetRekorURL(t *testing.T) {
 	}
 }
 
+type signature struct {
+	oci.Signature
+
+	payload []byte
+	cert    *x509.Certificate
+	bundle  *bundle.RekorBundle
+}
+
+func (s signature) Payload() ([]byte, error) {
+	return s.payload, nil
+}
+
+func (s signature) Cert() (*x509.Certificate, error) {
+	return s.cert, nil
+}
+
+func (s signature) Bundle() (*bundle.RekorBundle, error) {
+	return s.bundle, nil
+}
+
+type noPayloadSignature signature
+
+func (noPayloadSignature) Payload() ([]byte, error) {
+	return nil, errors.New("no payload test")
+}
+
+type noBundleSignature signature
+
+func (s noBundleSignature) Payload() ([]byte, error) {
+	return s.payload, nil
+}
+
+func (s noBundleSignature) Cert() (*x509.Certificate, error) {
+	return s.cert, nil
+}
+
+func (s noBundleSignature) Bundle() (*bundle.RekorBundle, error) {
+	return nil, fmt.Errorf("no bundle test")
+}
+
 type noCertSignature signature
 
 func (s noCertSignature) Payload() ([]byte, error) {
@@ -1923,4 +1845,83 @@ func (s noCertSignature) Payload() ([]byte, error) {
 
 func (noCertSignature) Cert() (*x509.Certificate, error) {
 	return nil, errors.New("no cert test")
+}
+
+type verifyFunctionArguments struct {
+	called  bool
+	context context.Context
+	ref     name.Reference
+	options *cosign.CheckOpts
+}
+type verifyFunction func(context.Context, name.Reference, *cosign.CheckOpts) ([]oci.Signature, bool, error)
+type verifyFunctionBinding func(require.TestingT, *verifyFunctionArguments) verifyFunction
+
+func createVerifyFunction(returnSignatures []oci.Signature, returnBundleVerified bool, returnError error) verifyFunctionBinding {
+	bindVerifyArgumentsFunction := func(t require.TestingT, verifyArguments *verifyFunctionArguments) verifyFunction {
+		newVerifyFunction := func(context context.Context, ref name.Reference, co *cosign.CheckOpts) ([]oci.Signature, bool, error) {
+			verifyArguments.called = true
+			verifyArguments.context = context
+			verifyArguments.ref = ref
+			verifyArguments.options = co
+			return returnSignatures, returnBundleVerified, returnError
+		}
+		return newVerifyFunction
+	}
+	return bindVerifyArgumentsFunction
+}
+
+func createNilVerifyFunction() verifyFunctionBinding {
+	bindVerifyArgumentsFunction := func(t require.TestingT, verifyArguments *verifyFunctionArguments) verifyFunction {
+		failFunction := func(context context.Context, ref name.Reference, co *cosign.CheckOpts) ([]oci.Signature, bool, error) {
+			require.FailNow(t, "nil verify function should not be called")
+			return nil, false, nil
+		}
+		return failFunction
+	}
+	return bindVerifyArgumentsFunction
+}
+
+type fetchFunctionArguments struct {
+	called  bool
+	ref     name.Reference
+	options []remote.Option
+}
+type fetchFunction func(ref name.Reference, options ...remote.Option) (*remote.Descriptor, error)
+type fetchFunctionBinding func(require.TestingT, *fetchFunctionArguments) fetchFunction
+
+func createFetchFunction(returnDescriptor *remote.Descriptor, returnError error) fetchFunctionBinding {
+	bindFetchArgumentsFunction := func(t require.TestingT, fetchArguments *fetchFunctionArguments) fetchFunction {
+		newFetchFunction := func(ref name.Reference, options ...remote.Option) (*remote.Descriptor, error) {
+			fetchArguments.called = true
+			fetchArguments.ref = ref
+			fetchArguments.options = options
+			return returnDescriptor, returnError
+		}
+		return newFetchFunction
+	}
+	return bindFetchArgumentsFunction
+}
+
+func createNilFetchFunction() fetchFunctionBinding {
+	bindFetchArgumentsFunction := func(t require.TestingT, fetchArguments *fetchFunctionArguments) fetchFunction {
+		failFunction := func(ref name.Reference, options ...remote.Option) (*remote.Descriptor, error) {
+			require.FailNow(t, "nil fetch function should not be called")
+			return nil, nil
+		}
+		return failFunction
+	}
+	return bindFetchArgumentsFunction
+}
+
+func createEmptyCheckOptsFunction(co *cosign.CheckOpts) func(url.URL) *cosign.CheckOpts {
+	emptyCheckOptsFunction := func(url.URL) *cosign.CheckOpts {
+		co.RekorClient = new(rekor.Rekor)
+		rootCert, _, _ := GenerateRootCa()
+		rootPool := x509.NewCertPool()
+		rootPool.AddCert(rootCert)
+		co.RootCerts = rootPool
+
+		return co
+	}
+	return emptyCheckOptsFunction
 }
