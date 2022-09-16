@@ -1217,6 +1217,20 @@ func TestSigstoreimpl_ClearAllowedSubjects(t *testing.T) {
 			},
 			want: nil,
 		},
+		{
+			name: "clear empty map",
+			fields: fields{
+				subjectAllowList: map[string]bool{},
+			},
+			want: nil,
+		},
+		{
+			name: "clear nil map",
+			fields: fields{
+				subjectAllowList: nil,
+			},
+			want: nil,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
