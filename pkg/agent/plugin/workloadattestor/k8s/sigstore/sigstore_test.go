@@ -80,7 +80,7 @@ func TestNew(t *testing.T) {
 
 	if sigImpObj, ok := sigstore.(*sigstoreImpl); !ok {
 		t.Errorf("object type does not match")
-	} else { //test each field manually since require.Equal does not work on function pointers
+	} else { // test each field manually since require.Equal does not work on function pointers
 		if &(sigImpObj.verifyFunction) == &(want.verifyFunction) {
 			t.Errorf("verify functions do not match")
 		}
@@ -379,7 +379,6 @@ func TestSigstoreimpl_FetchImageSignatures(t *testing.T) {
 					t.Errorf("sigstoreImpl.FetchImageSignatures() has error, wantErr %v", tt.wantErr)
 				}
 				require.EqualError(t, err, tt.wantedErr.Error(), "sigstoreImpl.FetchImageSignatures() error = %v, wantedErr = %v", err, tt.wantedErr)
-
 			} else if tt.wantErr {
 				t.Errorf("sigstoreImpl.FetchImageSignatures() no error, wantErr = %v, wantedErr %v", tt.wantErr, tt.wantedErr)
 			}
@@ -389,7 +388,6 @@ func TestSigstoreimpl_FetchImageSignatures(t *testing.T) {
 			require.Equal(t, tt.wantedFetchArguments, fetchArguments, "sigstoreImpl.FetchImageSignatures() fetchArguments = %v, want %v", fetchArguments, tt.wantedFetchArguments)
 
 			require.Equal(t, tt.wantedVerifyArguments, verifyArguments, "sigstoreImpl.FetchImageSignatures() verifyArguments = %v, want %v", verifyArguments, tt.wantedVerifyArguments)
-
 		})
 	}
 }
@@ -1090,7 +1088,6 @@ func TestSigstoreimpl_ValidateImage(t *testing.T) {
 					t.Errorf("sigstoreImpl.ValidateImage() has error, wantErr %v", tt.wantErr)
 				}
 				require.EqualError(t, err, tt.wantedErr.Error(), "sigstoreImpl.ValidateImage() error = %v, wantedErr = %v", err, tt.wantedErr)
-
 			} else if tt.wantErr {
 				t.Errorf("sigstoreImpl.ValidateImage() no error, wantErr = %v, wantedErr %v", tt.wantErr, tt.wantedErr)
 			}
