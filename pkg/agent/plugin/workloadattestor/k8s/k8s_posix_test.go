@@ -354,6 +354,12 @@ func (s *Suite) requireAttestSuccessWithPodSystemdCgroups(p workloadattestor.Wor
 	s.requireAttestSuccess(p, testPodSelectors)
 }
 
+func (s *Suite) requireAttestFailureWithPod(p workloadattestor.WorkloadAttestor, code codes.Code, contains string) {
+	s.addPodListResponse(podListFilePath)
+	s.addGetContainerResponsePidInPod()
+	s.requireAttestFailure(p, code, contains)
+}
+
 func TestGetContainerIDFromCGroups(t *testing.T) {
 	makeCGroups := func(groupPaths []string) []cgroups.Cgroup {
 		var out []cgroups.Cgroup

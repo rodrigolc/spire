@@ -1021,12 +1021,6 @@ func (s *Suite) requireAttestFailure(p workloadattestor.WorkloadAttestor, code c
 	s.Require().Nil(selectors)
 }
 
-func (s *Suite) requireAttestFailureWithPod(p workloadattestor.WorkloadAttestor, code codes.Code, contains string) {
-	s.addPodListResponse(podListFilePath)
-	s.addGetContainerResponsePidInPod()
-	s.requireAttestFailure(p, code, contains)
-}
-
 func (s *Suite) requireSelectorsEqual(expected, actual []*common.Selector) {
 	// assert the selectors (sorting for consistency)
 	util.SortSelectors(actual)
