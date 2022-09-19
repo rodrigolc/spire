@@ -1700,7 +1700,6 @@ func TestSigstoreimpl_AttestContainerSignatures(t *testing.T) {
 			require.Equal(t, tt.want, got, "sigstoreImpl.AttestContainerSignatures() = %v, want %v", got, tt.want)
 			require.Equal(t, tt.wantedFetchArguments, fetchArguments, "sigstoreImpl.AttestContainerSignatures() fetchArguments = %v, wantedFetchArguments = %v", fetchArguments, tt.wantedFetchArguments)
 			require.Equal(t, tt.wantedVerifyArguments, verifyArguments, "sigstoreImpl.AttestContainerSignatures() verifyArguments = %v, wantedVerifyArguments = %v", verifyArguments, tt.wantedVerifyArguments)
-
 		})
 	}
 }
