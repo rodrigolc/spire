@@ -266,9 +266,8 @@ func (p *Plugin) Attest(ctx context.Context, req *workloadattestorv1.AttestReque
 					if err != nil {
 						log.Error("Error retrieving signature payload", "error", err)
 						return nil, status.Errorf(codes.Internal, "error retrieving signature payload: %v", err)
-					} else {
-						selectors = append(selectors, sigstoreSelectors...)
 					}
+					selectors = append(selectors, sigstoreSelectors...)
 				}
 				attestResponse = &workloadattestorv1.AttestResponse{
 					SelectorValues: selectors,
