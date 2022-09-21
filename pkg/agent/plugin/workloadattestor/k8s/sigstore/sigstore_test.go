@@ -66,28 +66,30 @@ func GenerateRootCa() (*x509.Certificate, *ecdsa.PrivateKey, error) {
 func TestNew(t *testing.T) {
 	newcache := NewCache(maximumAmountCache)
 	want := &sigstoreImpl{
-		verifyFunction:             cosign.VerifyImageSignatures,
-		fetchImageManifestFunction: remote.Get,
-		skippedImages:              nil,
-		allowListEnabled:           false,
-		subjectAllowList:           nil,
-		rekorURL:                   url.URL{Scheme: rekor.DefaultSchemes[0], Host: rekor.DefaultHost, Path: rekor.DefaultBasePath},
-		sigstorecache:              newcache,
-		checkOptsFunction:          DefaultCheckOpts,
-		logger:                     nil,
+		functionHooks: sigstoreFunctionHooks{
+			verifyFunction:             cosign.VerifyImageSignatures,
+			fetchImageManifestFunction: remote.Get,
+			checkOptsFunction:          DefaultCheckOpts,
+		},
+		skippedImages:    nil,
+		allowListEnabled: false,
+		subjectAllowList: nil,
+		rekorURL:         url.URL{Scheme: rekor.DefaultSchemes[0], Host: rekor.DefaultHost, Path: rekor.DefaultBasePath},
+		sigstorecache:    newcache,
+		logger:           nil,
 	}
 	sigstore := New(newcache, nil)
 
 	if sigImpObj, ok := sigstore.(*sigstoreImpl); !ok {
 		t.Errorf("object type does not match")
 	} else { // test each field manually since require.Equal does not work on function pointers
-		if &(sigImpObj.verifyFunction) == &(want.verifyFunction) {
+		if &(sigImpObj.functionHooks.verifyFunction) == &(want.functionHooks.verifyFunction) {
 			t.Errorf("verify functions do not match")
 		}
-		if &(sigImpObj.fetchImageManifestFunction) == &(want.fetchImageManifestFunction) {
+		if &(sigImpObj.functionHooks.fetchImageManifestFunction) == &(want.functionHooks.fetchImageManifestFunction) {
 			t.Errorf("fetchImageManifest functions do not match")
 		}
-		if &(sigImpObj.checkOptsFunction) == &(want.checkOptsFunction) {
+		if &(sigImpObj.functionHooks.checkOptsFunction) == &(want.functionHooks.checkOptsFunction) {
 			t.Errorf("checkOptsFunction functions do not match")
 		}
 		require.Equal(t, want.skippedImages, sigImpObj.skippedImages, "skippedImages array is not empty")
@@ -367,10 +369,12 @@ func TestSigstoreimpl_FetchImageSignatures(t *testing.T) {
 			fetchArguments := fetchFunctionArguments{}
 			verifyArguments := verifyFunctionArguments{}
 			sigstore := sigstoreImpl{
-				verifyFunction:             tt.fields.verifyFunction(t, &verifyArguments),
-				fetchImageManifestFunction: tt.fields.fetchImageManifestFunction(t, &fetchArguments),
-				sigstorecache:              NewCache(maximumAmountCache),
-				checkOptsFunction:          emptyCheckOptsFunction,
+				functionHooks: sigstoreFunctionHooks{
+					verifyFunction:             tt.fields.verifyFunction(t, &verifyArguments),
+					fetchImageManifestFunction: tt.fields.fetchImageManifestFunction(t, &fetchArguments),
+					checkOptsFunction:          emptyCheckOptsFunction,
+				},
+				sigstorecache: NewCache(maximumAmountCache),
 			}
 			got, err := sigstore.FetchImageSignatures(context.Background(), tt.args.imageName)
 
@@ -600,8 +604,10 @@ func TestSigstoreimpl_ExtractSelectorsFromSignatures(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := sigstoreImpl{
-				verifyFunction: tt.fields.verifyFunction,
-				logger:         hclog.Default(),
+				functionHooks: sigstoreFunctionHooks{
+					verifyFunction: tt.fields.verifyFunction,
+				},
+				logger: hclog.Default(),
 			}
 			got := s.ExtractSelectorsFromSignatures(tt.args.signatures, tt.containerID)
 			require.Equal(t, got, tt.want, "sigstoreImpl.ExtractSelectorsFromSignatures() = %v, want %v", got, tt.want)
@@ -915,9 +921,11 @@ func TestSigstoreimpl_AddSkippedImage(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			sigstore := sigstoreImpl{
-				verifyFunction:             tt.fields.verifyFunction,
-				fetchImageManifestFunction: tt.fields.fetchImageManifestFunction,
-				skippedImages:              tt.fields.skippedImages,
+				functionHooks: sigstoreFunctionHooks{
+					verifyFunction:             tt.fields.verifyFunction,
+					fetchImageManifestFunction: tt.fields.fetchImageManifestFunction,
+				},
+				skippedImages: tt.fields.skippedImages,
 			}
 			sigstore.AddSkippedImage(tt.args.imageID)
 			require.Equal(t, sigstore.skippedImages, tt.want, "sigstore.skippedImages = %v, want %v", sigstore.skippedImages, tt.want)
@@ -982,9 +990,11 @@ func TestSigstoreimpl_ClearSkipList(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			sigstore := &sigstoreImpl{
-				verifyFunction:             tt.fields.verifyFunction,
-				fetchImageManifestFunction: tt.fields.fetchImageManifestFunction,
-				skippedImages:              tt.fields.skippedImages,
+				functionHooks: sigstoreFunctionHooks{
+					verifyFunction:             tt.fields.verifyFunction,
+					fetchImageManifestFunction: tt.fields.fetchImageManifestFunction,
+				},
+				skippedImages: tt.fields.skippedImages,
 			}
 			sigstore.ClearSkipList()
 			if !reflect.DeepEqual(sigstore.skippedImages, tt.want) {
@@ -1077,9 +1087,11 @@ func TestSigstoreimpl_ValidateImage(t *testing.T) {
 			fetchArguments := fetchFunctionArguments{}
 			verifyArguments := verifyFunctionArguments{}
 			sigstore := &sigstoreImpl{
-				verifyFunction:             tt.fields.verifyFunction(t, &verifyArguments),
-				fetchImageManifestFunction: tt.fields.fetchImageManifestFunction(t, &fetchArguments),
-				skippedImages:              tt.fields.skippedImages,
+				functionHooks: sigstoreFunctionHooks{
+					verifyFunction:             tt.fields.verifyFunction(t, &verifyArguments),
+					fetchImageManifestFunction: tt.fields.fetchImageManifestFunction(t, &fetchArguments),
+				},
+				skippedImages: tt.fields.skippedImages,
 			}
 			got, err := sigstore.ValidateImage(tt.args.ref)
 
@@ -1678,13 +1690,15 @@ func TestSigstoreimpl_AttestContainerSignatures(t *testing.T) {
 			fetchArguments := fetchFunctionArguments{}
 			verifyArguments := verifyFunctionArguments{}
 			sigstore := &sigstoreImpl{
-				verifyFunction:             tt.fields.verifyFunction(t, &verifyArguments),
-				fetchImageManifestFunction: tt.fields.fetchImageManifestFunction(t, &fetchArguments),
-				skippedImages:              tt.fields.skippedImages,
-				rekorURL:                   tt.fields.rekorURL,
-				sigstorecache:              NewCache(maximumAmountCache),
-				checkOptsFunction:          emptyCheckOptsFunction,
-				logger:                     hclog.Default(),
+				functionHooks: sigstoreFunctionHooks{
+					verifyFunction:             tt.fields.verifyFunction(t, &verifyArguments),
+					fetchImageManifestFunction: tt.fields.fetchImageManifestFunction(t, &fetchArguments),
+					checkOptsFunction:          emptyCheckOptsFunction,
+				},
+				skippedImages: tt.fields.skippedImages,
+				rekorURL:      tt.fields.rekorURL,
+				sigstorecache: NewCache(maximumAmountCache),
+				logger:        hclog.Default(),
 			}
 			got, err := sigstore.AttestContainerSignatures(context.Background(), &tt.status)
 
@@ -1863,11 +1877,11 @@ type verifyFunctionArguments struct {
 	ref     name.Reference
 	options *cosign.CheckOpts
 }
-type verifyFunction func(context.Context, name.Reference, *cosign.CheckOpts) ([]oci.Signature, bool, error)
-type verifyFunctionBinding func(require.TestingT, *verifyFunctionArguments) verifyFunction
+
+type verifyFunctionBinding func(require.TestingT, *verifyFunctionArguments) verifyFunctionType
 
 func createVerifyFunction(returnSignatures []oci.Signature, returnBundleVerified bool, returnError error) verifyFunctionBinding {
-	bindVerifyArgumentsFunction := func(t require.TestingT, verifyArguments *verifyFunctionArguments) verifyFunction {
+	bindVerifyArgumentsFunction := func(t require.TestingT, verifyArguments *verifyFunctionArguments) verifyFunctionType {
 		newVerifyFunction := func(context context.Context, ref name.Reference, co *cosign.CheckOpts) ([]oci.Signature, bool, error) {
 			verifyArguments.called = true
 			verifyArguments.context = context
@@ -1881,7 +1895,7 @@ func createVerifyFunction(returnSignatures []oci.Signature, returnBundleVerified
 }
 
 func createNilVerifyFunction() verifyFunctionBinding {
-	bindVerifyArgumentsFunction := func(t require.TestingT, verifyArguments *verifyFunctionArguments) verifyFunction {
+	bindVerifyArgumentsFunction := func(t require.TestingT, verifyArguments *verifyFunctionArguments) verifyFunctionType {
 		failFunction := func(context context.Context, ref name.Reference, co *cosign.CheckOpts) ([]oci.Signature, bool, error) {
 			require.FailNow(t, "nil verify function should not be called")
 			return nil, false, nil
@@ -1896,11 +1910,11 @@ type fetchFunctionArguments struct {
 	ref     name.Reference
 	options []remote.Option
 }
-type fetchFunction func(ref name.Reference, options ...remote.Option) (*remote.Descriptor, error)
-type fetchFunctionBinding func(require.TestingT, *fetchFunctionArguments) fetchFunction
+
+type fetchFunctionBinding func(require.TestingT, *fetchFunctionArguments) fetchImageManifestFunctionType
 
 func createFetchFunction(returnDescriptor *remote.Descriptor, returnError error) fetchFunctionBinding {
-	bindFetchArgumentsFunction := func(t require.TestingT, fetchArguments *fetchFunctionArguments) fetchFunction {
+	bindFetchArgumentsFunction := func(t require.TestingT, fetchArguments *fetchFunctionArguments) fetchImageManifestFunctionType {
 		newFetchFunction := func(ref name.Reference, options ...remote.Option) (*remote.Descriptor, error) {
 			fetchArguments.called = true
 			fetchArguments.ref = ref
@@ -1913,7 +1927,7 @@ func createFetchFunction(returnDescriptor *remote.Descriptor, returnError error)
 }
 
 func createNilFetchFunction() fetchFunctionBinding {
-	bindFetchArgumentsFunction := func(t require.TestingT, fetchArguments *fetchFunctionArguments) fetchFunction {
+	bindFetchArgumentsFunction := func(t require.TestingT, fetchArguments *fetchFunctionArguments) fetchImageManifestFunctionType {
 		failFunction := func(ref name.Reference, options ...remote.Option) (*remote.Descriptor, error) {
 			require.FailNow(t, "nil fetch function should not be called")
 			return nil, nil
