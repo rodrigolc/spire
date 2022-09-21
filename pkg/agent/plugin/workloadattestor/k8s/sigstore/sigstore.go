@@ -22,6 +22,7 @@ import (
 	"github.com/sigstore/cosign/pkg/oci"
 	rekor "github.com/sigstore/rekor/pkg/generated/client"
 	"github.com/sigstore/sigstore/pkg/signature/payload"
+	"github.com/spiffe/spire/pkg/common/telemetry"
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -160,18 +161,18 @@ func (s *sigstoreImpl) ExtractSelectorsFromSignatures(signatures []oci.Signature
 func (s *sigstoreImpl) SelectorValuesFromSignature(signature oci.Signature, containerID string) *SelectorsFromSignatures {
 	subject, err := getSignatureSubject(signature)
 	if err != nil {
-		s.logger.Error("Error getting signature subject", "error", err)
+		s.logger.Error("Error getting signature subject", "error", err, telemetry.ContainerID, containerID)
 		return nil
 	}
 
 	if subject == "" {
-		s.logger.Error("Error getting signature subject", "error", errors.New("empty subject"))
+		s.logger.Error("Error getting signature subject", "error", errors.New("empty subject"), telemetry.ContainerID, containerID)
 		return nil
 	}
 
 	if s.allowListEnabled {
 		if _, ok := s.subjectAllowList[subject]; !ok {
-			s.logger.Debug("Subject not in allow-list", "subject", subject)
+			s.logger.Debug("Subject not in allow-list", "subject", subject, telemetry.ContainerID, containerID)
 			return nil
 		}
 	}
@@ -180,12 +181,12 @@ func (s *sigstoreImpl) SelectorValuesFromSignature(signature oci.Signature, cont
 
 	bundle, err := signature.Bundle()
 	if err != nil {
-		s.logger.Error("Error getting signature bundle", "error", err)
+		s.logger.Error("Error getting signature bundle", "error", err, telemetry.ContainerID, containerID)
 		return selectorsFromSignatures
 	}
 	sigContent, err := getBundleSignatureContent(bundle)
 	if err != nil {
-		s.logger.Error("Error getting signature content", "error", err)
+		s.logger.Error("Error getting signature content", "error", err, telemetry.ContainerID, containerID)
 	}
 	selectorsFromSignatures.Content = sigContent
 
