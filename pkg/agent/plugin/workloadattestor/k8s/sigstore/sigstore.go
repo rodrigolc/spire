@@ -182,20 +182,26 @@ func (s *sigstoreImpl) SelectorValuesFromSignature(signature oci.Signature, cont
 	bundle, err := signature.Bundle()
 	if err != nil {
 		s.logger.Error("Error getting signature bundle", "error", err, telemetry.ContainerID, containerID)
-		return selectorsFromSignatures
+		return nil
 	}
 	sigContent, err := getBundleSignatureContent(bundle)
 	if err != nil {
 		s.logger.Error("Error getting signature content", "error", err, telemetry.ContainerID, containerID)
+		return nil
 	}
 	selectorsFromSignatures.Content = sigContent
 
-	if bundle.Payload.LogID != "" {
-		selectorsFromSignatures.LogID = bundle.Payload.LogID
+	if bundle.Payload.LogID == "" {
+		s.logger.Error("Error getting signature log ID", "error", errors.New("empty log ID"), telemetry.ContainerID, containerID)
+		return nil
 	}
-	if bundle.Payload.IntegratedTime != 0 {
-		selectorsFromSignatures.IntegratedTime = strconv.FormatInt(bundle.Payload.IntegratedTime, 10)
+	selectorsFromSignatures.LogID = bundle.Payload.LogID
+
+	if bundle.Payload.IntegratedTime == 0 {
+		s.logger.Error("Error getting signature integrated time", "error", errors.New("integrated time is 0"), telemetry.ContainerID, containerID)
+		return nil
 	}
+	selectorsFromSignatures.IntegratedTime = strconv.FormatInt(bundle.Payload.IntegratedTime, 10)
 	return selectorsFromSignatures
 }
 
