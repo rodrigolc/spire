@@ -1628,6 +1628,7 @@ func TestSigstoreimpl_AttestContainerSignatures(t *testing.T) {
 	}
 
 	defaultCheckOpts, _ := defaultCheckOptsFunction(rekorDefaultURL())
+	emptyURLCheckOpts, emptyError := defaultCheckOptsFunction(url.URL{})
 	tests := []struct {
 		name                     string
 		fields                   fields
@@ -1745,6 +1746,36 @@ func TestSigstoreimpl_AttestContainerSignatures(t *testing.T) {
 			want:      nil,
 			wantErr:   true,
 			wantedErr: fmt.Errorf("error verifying signature: %w", errors.New("no signature found")),
+		},
+		{
+			name: "Attest image with empty rekorURL",
+			fields: fields{
+				functionBindings: sigstoreFunctionBindings{
+					verifyBinding: createNilVerifyFunction(),
+					fetchBinding: createFetchFunction(&remote.Descriptor{
+						Manifest: []byte("sometext"),
+					}, nil),
+					checkOptsBinding: createCheckOptsFunction(emptyURLCheckOpts, emptyError),
+				},
+				rekorURL: url.URL{},
+			},
+			status: corev1.ContainerStatus{
+				Image:       "spire-agent-sigstore-3",
+				ImageID:     "docker-registry.com/some/image@sha256:5fb2054478353fd8d514056d1745b3a9eef066deadda4b90967af7ca65ce6505",
+				ContainerID: "222222",
+			},
+			wantedFetchArguments: fetchFunctionArguments{
+				called:  true,
+				ref:     name.MustParseReference("docker-registry.com/some/image@sha256:5fb2054478353fd8d514056d1745b3a9eef066deadda4b90967af7ca65ce6505"),
+				options: nil,
+			},
+			wantedCheckOptsArguments: checkOptsFunctionArguments{
+				called: true,
+				url:    url.URL{},
+			},
+			want:      nil,
+			wantErr:   true,
+			wantedErr: fmt.Errorf("could not create cosign check options: %w", emptyError),
 		},
 	}
 	for _, tt := range tests {
