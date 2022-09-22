@@ -621,17 +621,14 @@ func (s *Suite) TestConfigure() {
 				assert.NotNil(t, c.sigstoreConfig)
 
 				assert.Equal(t, testCase.config.SkippedImages, c.sigstoreConfig.SkippedImages)
-				for _, sImage := range testCase.config.SkippedImages {
-					assert.Contains(t, s.sigstoreMock.skippedImages, sImage)
-				}
+				assert.Equal(t, testCase.config.SkippedImages, s.sigstoreMock.skippedImages)
 
 				assert.Equal(t, testCase.config.AllowedSubjectListEnabled, c.sigstoreConfig.AllowedSubjectListEnabled)
 				assert.Equal(t, testCase.config.AllowedSubjectListEnabled, s.sigstoreMock.allowedSubjectListEnabled)
 
 				assert.Equal(t, testCase.config.AllowedSubjects, c.sigstoreConfig.AllowedSubjects)
-				for _, sSubject := range testCase.config.AllowedSubjects {
-					assert.Contains(t, s.sigstoreMock.allowedSubjects, sSubject)
-				}
+				assert.Equal(t, testCase.config.AllowedSubjects, s.sigstoreMock.allowedSubjects)
+
 				assert.Equal(t, testCase.config.RekorURL, c.sigstoreConfig.RekorURL)
 			} else {
 				assert.Nil(t, c.sigstoreConfig)
