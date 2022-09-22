@@ -2039,19 +2039,6 @@ func createNilCheckOptsFunction() checkOptsFunctionBinding {
 	return bindCheckOptsArgumentsFunction
 }
 
-func createEmptyCheckOptsFunction(co *cosign.CheckOpts) func(url.URL) (*cosign.CheckOpts, error) {
-	emptyCheckOptsFunction := func(url.URL) (*cosign.CheckOpts, error) {
-		co.RekorClient = new(rekor.Rekor)
-		rootCert, _, _ := GenerateRootCa()
-		rootPool := x509.NewCertPool()
-		rootPool.AddCert(rootCert)
-		co.RootCerts = rootPool
-
-		return co, nil
-	}
-	return emptyCheckOptsFunction
-}
-
 func rekorDefaultURL() url.URL {
 	return url.URL{
 		Scheme: rekor.DefaultSchemes[0],
