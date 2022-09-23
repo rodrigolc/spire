@@ -1496,6 +1496,111 @@ func TestSigstoreimpl_SelectorValuesFromSignature(t *testing.T) {
 			containerID: "555555",
 			want:        nil,
 		},
+		{
+			name: "selector from signature, bundle payload body is not a string",
+			fields: fields{
+				allowListEnabled: false,
+				subjectAllowList: nil,
+			},
+			args: args{
+				signature: signature{
+					payload: []byte(`{"critical": {"identity": {"docker-reference": "docker-registry.com/some/image"},"image": {"docker-manifest-digest": "02c15a8d1735c65bb8ca86c716615d3c0d8beb87dc68ed88bb49192f90b184e2"},"type": "some type"},"optional": {"subject": "spirex@example.com","key2": "value 2","key3": "value 3"}}`),
+					bundle: &bundle.RekorBundle{
+						Payload: bundle.RekorPayload{
+							Body:           42,
+							LogID:          "samplelogID",
+							IntegratedTime: 12345,
+						},
+					},
+				},
+			},
+			containerID: "000000",
+			want:        nil,
+		},
+		{
+			name: "selector from signature, bundle payload body is not valid base64",
+			fields: fields{
+				allowListEnabled: false,
+				subjectAllowList: nil,
+			},
+			args: args{
+				signature: signature{
+					payload: []byte(`{"critical": {"identity": {"docker-reference": "docker-registry.com/some/image"},"image": {"docker-manifest-digest": "02c15a8d1735c65bb8ca86c716615d3c0d8beb87dc68ed88bb49192f90b184e2"},"type": "some type"},"optional": {"subject": "spirex@example.com","key2": "value 2","key3": "value 3"}}`),
+					bundle: &bundle.RekorBundle{
+						Payload: bundle.RekorPayload{
+							Body:           "abc..........def",
+							LogID:          "samplelogID",
+							IntegratedTime: 12345,
+						},
+					},
+				},
+			},
+			containerID: "000000",
+			want:        nil,
+		},
+		{
+			name: "selector from signature, bundle payload body has no signature content",
+			fields: fields{
+				allowListEnabled: false,
+				subjectAllowList: nil,
+			},
+			args: args{
+				signature: signature{
+					payload: []byte(`{"critical": {"identity": {"docker-reference": "docker-registry.com/some/image"},"image": {"docker-manifest-digest": "02c15a8d1735c65bb8ca86c716615d3c0d8beb87dc68ed88bb49192f90b184e2"},"type": "some type"},"optional": {"subject": "spirex@example.com","key2": "value 2","key3": "value 3"}}`),
+					bundle: &bundle.RekorBundle{
+						Payload: bundle.RekorPayload{
+							Body:           "ewogICAgInNwZWMiOiB7CiAgICAgICJzaWduYXR1cmUiOiB7CiAgICAgIH0KICAgIH0KfQ==",
+							LogID:          "samplelogID",
+							IntegratedTime: 12345,
+						},
+					},
+				},
+			},
+			containerID: "000000",
+			want:        nil,
+		},
+		{
+			name: "selector from signature, bundle payload body signature content is empty",
+			fields: fields{
+				allowListEnabled: false,
+				subjectAllowList: nil,
+			},
+			args: args{
+				signature: signature{
+					payload: []byte(`{"critical": {"identity": {"docker-reference": "docker-registry.com/some/image"},"image": {"docker-manifest-digest": "02c15a8d1735c65bb8ca86c716615d3c0d8beb87dc68ed88bb49192f90b184e2"},"type": "some type"},"optional": {"subject": "spirex@example.com","key2": "value 2","key3": "value 3"}}`),
+					bundle: &bundle.RekorBundle{
+						Payload: bundle.RekorPayload{
+							Body:           "ewogICAgInNwZWMiOiB7CiAgICAgICAgInNpZ25hdHVyZSI6IHsKICAgICAgICAiY29udGVudCI6ICIiCiAgICAgICAgfQogICAgfQp9",
+							LogID:          "samplelogID",
+							IntegratedTime: 12345,
+						},
+					},
+				},
+			},
+			containerID: "000000",
+			want:        nil,
+		},
+		{
+			name: "selector from signature, bundle payload body is not a valid JSON",
+			fields: fields{
+				allowListEnabled: false,
+				subjectAllowList: nil,
+			},
+			args: args{
+				signature: signature{
+					payload: []byte(`{"critical": {"identity": {"docker-reference": "docker-registry.com/some/image"},"image": {"docker-manifest-digest": "02c15a8d1735c65bb8ca86c716615d3c0d8beb87dc68ed88bb49192f90b184e2"},"type": "some type"},"optional": {"subject": "spirex@example.com","key2": "value 2","key3": "value 3"}}`),
+					bundle: &bundle.RekorBundle{
+						Payload: bundle.RekorPayload{
+							Body:           "ewogICJzcGVjIjosLCB7CiAgICAic2lnbmF0dXJlIjogewogICAgICAiY29udGVudCI6ICJNRVVDSVFDeWVtOEdjcjBzUEZNUDdmVFhhekNONTdOY041K01qeEp3OU9vMHgyZU0rQUlnZGdCUDk2Qk8xVGUvTmRiakhiVWViMEJVeWU2ZGVSZ1Z0UUV2NU5vNXNtQT0iCiAgICB9CiAgfQp9",
+							LogID:          "samplelogID",
+							IntegratedTime: 12345,
+						},
+					},
+				},
+			},
+			containerID: "000000",
+			want:        nil,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -1509,114 +1614,6 @@ func TestSigstoreimpl_SelectorValuesFromSignature(t *testing.T) {
 		})
 	}
 }
-
-// aqui
-/* func Test_getBundleSignatureContent(t *testing.T) {
-	type args struct {
-		bundle *bundle.RekorBundle
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    string
-		wantErr bool
-	}{
-		{
-			name: "nil bundle",
-			args: args{
-				bundle: nil,
-			},
-			want:    "",
-			wantErr: true,
-		},
-		{
-			name: "Bundle payload body is not a string",
-			args: args{
-				bundle: &bundle.RekorBundle{
-					Payload: bundle.RekorPayload{
-						Body: 42,
-					},
-				},
-			},
-			want:    "",
-			wantErr: true,
-		},
-		{
-			name: "Bundle payload body is not valid base64",
-			args: args{
-				bundle: &bundle.RekorBundle{
-					Payload: bundle.RekorPayload{
-						Body: "abc..........def",
-					},
-				},
-			},
-			want:    "",
-			wantErr: true,
-		},
-		{
-			name: "Bundle payload body has no signature content",
-			args: args{
-				bundle: &bundle.RekorBundle{
-					Payload: bundle.RekorPayload{
-						Body: "ewogICAgInNwZWMiOiB7CiAgICAgICJzaWduYXR1cmUiOiB7CiAgICAgIH0KICAgIH0KfQ==",
-					},
-				},
-			},
-			want:    "",
-			wantErr: true,
-		},
-		{
-			name: "Bundle payload body signature content is empty",
-			args: args{
-				bundle: &bundle.RekorBundle{
-					Payload: bundle.RekorPayload{
-						Body: "ewogICAgInNwZWMiOiB7CiAgICAgICAgInNpZ25hdHVyZSI6IHsKICAgICAgICAiY29udGVudCI6ICIiCiAgICAgICAgfQogICAgfQp9",
-					},
-				},
-			},
-			want:    "",
-			wantErr: true,
-		},
-		{
-			name: "Bundle payload body is not a valid JSON",
-			args: args{
-				bundle: &bundle.RekorBundle{
-					Payload: bundle.RekorPayload{
-						Body: "ewogICJzcGVjIjosLCB7CiAgICAic2lnbmF0dXJlIjogewogICAgICAiY29udGVudCI6ICJNRVVDSVFDeWVtOEdjcjBzUEZNUDdmVFhhekNONTdOY041K01qeEp3OU9vMHgyZU0rQUlnZGdCUDk2Qk8xVGUvTmRiakhiVWViMEJVeWU2ZGVSZ1Z0UUV2NU5vNXNtQT0iCiAgICB9CiAgfQp9",
-					},
-				},
-			},
-			want:    "",
-			wantErr: true,
-		},
-		{
-			name: "Bundle payload body signature content is correct",
-			args: args{
-				bundle: &bundle.RekorBundle{
-					Payload: bundle.RekorPayload{
-						Body:           "ewogICJzcGVjIjogewogICAgInNpZ25hdHVyZSI6IHsKICAgICAgImNvbnRlbnQiOiAiTUVVQ0lRQ3llbThHY3Iwc1BGTVA3ZlRYYXpDTjU3TmNONStNanhKdzlPbzB4MmVNK0FJZ2RnQlA5NkJPMVRlL05kYmpIYlVlYjBCVXllNmRlUmdWdFFFdjVObzVzbUE9IgogICAgfQogIH0KfQ==",
-						LogID:          "samplelogID",
-						IntegratedTime: 12345,
-					},
-				},
-			},
-			want:    "MEUCIQCyem8Gcr0sPFMP7fTXazCN57NcN5+MjxJw9Oo0x2eM+AIgdgBP96BO1Te/NdbjHbUeb0BUye6deRgVtQEv5No5smA=",
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := getBundleSignatureContent(tt.args.bundle)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("getBundleSignatureContent() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if got != tt.want {
-				t.Errorf("getBundleSignatureContent() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-} */
 
 func TestSigstoreimpl_AttestContainerSignatures(t *testing.T) {
 	type fields struct {
