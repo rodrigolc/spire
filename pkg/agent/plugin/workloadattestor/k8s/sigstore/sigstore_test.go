@@ -845,65 +845,6 @@ func TestSigstoreimpl_ShouldSkipImage(t *testing.T) {
 	}
 }
 
-// aqui
-/* func Test_getSignatureSubject(t *testing.T) {
-	type args struct {
-		signature oci.Signature
-	}
-	tests := []struct {
-		name string
-		args args
-		want string
-	}{
-		{
-			name: "single image signature",
-			args: args{
-				signature: signature{
-					payload: []byte(`{"critical": {"identity": {"docker-reference": "docker-registry.com/some/image"},"image": {"docker-manifest-digest": "some digest"},"type": "some type"},"optional": {"subject": "spirex@example.com","key2": "value 2","key3": "value 3"}}`),
-				},
-			},
-			want: "spirex@example.com",
-		},
-		{
-			name: "empty signature array",
-			args: args{signature: nil},
-			want: "",
-		},
-		{
-			name: "single image signature, no payload",
-			args: args{
-				signature: noPayloadSignature{},
-			},
-			want: "",
-		},
-		{
-			name: "single image signature, no certs",
-			args: args{
-				signature: &noCertSignature{
-					payload: []byte(`{"critical": {"identity": {"docker-reference": "docker-registry.com/some/image"},"image": {"docker-manifest-digest": "some digest"},"type": "some type"},"optional": {"subject": "spirex@example.com","key2": "value 2","key3": "value 3"}}`),
-				},
-			},
-			want: "",
-		},
-		{
-			name: "single image signature,garbled subject in signature",
-			args: args{
-				signature: &signature{
-					payload: []byte(`{"critical": {"identity": {"docker-reference": "docker-registry.com/some/image"},"image": {"docker-manifest-digest": "some digest"},"type": "some type"},"optional": {"subject": "s\\\\||as\0\0aasdasd/....???/.>wd12<><,,,><{}{pirex@example.com","key2": "value 2","key3": "value 3"}}`),
-				},
-			},
-			want: "",
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got, _ := getSignatureSubject(tt.args.signature); got != tt.want {
-				t.Errorf("getSignatureSubject() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-} */
-
 func TestSigstoreimpl_AddSkippedImage(t *testing.T) {
 	type fields struct {
 		verifyFunction             func(context context.Context, ref name.Reference, co *cosign.CheckOpts) ([]oci.Signature, bool, error)
@@ -1596,6 +1537,72 @@ func TestSigstoreimpl_SelectorValuesFromSignature(t *testing.T) {
 							IntegratedTime: 12345,
 						},
 					},
+				},
+			},
+			containerID: "000000",
+			want:        nil,
+		},
+		{
+			name: "selector from signature, empty signature array",
+			fields: fields{
+				allowListEnabled: false,
+				subjectAllowList: nil,
+			},
+			args: args{
+				signature: nil,
+			},
+			containerID: "000000",
+			want:        nil,
+		},
+		{
+			name: "selector from signature, single image signature, no payload",
+			fields: fields{
+				allowListEnabled: false,
+				subjectAllowList: nil,
+			},
+			args: args{
+				signature: noPayloadSignature{},
+			},
+			containerID: "000000",
+			want:        nil,
+		},
+		{
+			name: "selector from signature, single image signature, no certs",
+			fields: fields{
+				allowListEnabled: false,
+				subjectAllowList: nil,
+			},
+			args: args{
+				signature: &noCertSignature{
+					payload: []byte(`{"critical": {"identity": {"docker-reference": "docker-registry.com/some/image"},"image": {"docker-manifest-digest": "some digest"},"type": "some type"},"optional": {"subject": "spirex@example.com","key2": "value 2","key3": "value 3"}}`),
+				},
+			},
+			containerID: "000000",
+			want:        nil,
+		},
+		{
+			name: "selector from signature, single image signature,garbled subject in signature",
+			fields: fields{
+				allowListEnabled: false,
+				subjectAllowList: nil,
+			},
+			args: args{
+				signature: &signature{
+					payload: []byte(`{"critical": {"identity": {"docker-reference": "docker-registry.com/some/image"},"image": {"docker-manifest-digest": "some digest"},"type": "some type"},"optional": {"subject": "s\\\\||as\0\0aasdasd/....???/.>wd12<><,,,><{}{pirex@example.com","key2": "value 2","key3": "value 3"}}`),
+				},
+			},
+			containerID: "000000",
+			want:        nil,
+		},
+		{
+			name: "selector from signature, single image signature,garbled subject in signature",
+			fields: fields{
+				allowListEnabled: false,
+				subjectAllowList: nil,
+			},
+			args: args{
+				signature: &signature{
+					payload: []byte(`{"critical": {"identity": {"docker-reference": "docker-registry.com/some/image"},"image": {"docker-manifest-digest": "some digest"},"type": "some type"},"optional": {"subject": "s\\\\||as\0\0aasdasd/....???/.>wd12<><,,,><{}{pirex@example.com","key2": "value 2","key3": "value 3"}}`),
 				},
 			},
 			containerID: "000000",
