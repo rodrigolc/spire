@@ -1226,6 +1226,8 @@ func TestSigstoreimpl_SelectorValuesFromSignature(t *testing.T) {
 		args        args
 		containerID string
 		want        *SelectorsFromSignatures
+		wantErr     bool
+		wantedErr   error
 	}{
 		{
 			name: "selector from signature",
@@ -1252,6 +1254,7 @@ func TestSigstoreimpl_SelectorValuesFromSignature(t *testing.T) {
 				LogID:          "samplelogID",
 				IntegratedTime: "12345",
 			},
+			wantErr: false,
 		},
 		{
 			name: "selector from signature, empty subject",
@@ -1273,6 +1276,8 @@ func TestSigstoreimpl_SelectorValuesFromSignature(t *testing.T) {
 			},
 			containerID: "111111",
 			want:        nil,
+			wantErr:     true,
+			wantedErr:   fmt.Errorf("error getting signature subject: empty subject"),
 		},
 		{
 			name: "selector from signature, not in allowlist",
@@ -1289,6 +1294,8 @@ func TestSigstoreimpl_SelectorValuesFromSignature(t *testing.T) {
 			},
 			containerID: "222222",
 			want:        nil,
+			wantErr:     true,
+			wantedErr:   fmt.Errorf("subject %q not in allow-list", "spirex1@example.com"),
 		},
 		{
 			name: "selector from signature, allowedlist enabled, in allowlist",
@@ -1317,6 +1324,7 @@ func TestSigstoreimpl_SelectorValuesFromSignature(t *testing.T) {
 				LogID:          "samplelogID",
 				IntegratedTime: "12345",
 			},
+			wantErr: false,
 		},
 		{
 			name: "selector from signature, allowedlist enabled, in allowlist, empty content",
@@ -1340,6 +1348,8 @@ func TestSigstoreimpl_SelectorValuesFromSignature(t *testing.T) {
 			},
 			containerID: "444444",
 			want:        nil,
+			wantErr:     true,
+			wantedErr:   fmt.Errorf("error getting signature content: bundle payload body has no signature content"),
 		},
 		{
 			name: "selector from signature, nil bundle",
@@ -1354,6 +1364,8 @@ func TestSigstoreimpl_SelectorValuesFromSignature(t *testing.T) {
 			},
 			containerID: "555555",
 			want:        nil,
+			wantErr:     true,
+			wantedErr:   fmt.Errorf("error getting signature bundle: no bundle test"),
 		},
 		{
 			name: "selector from signature, bundle payload body is not a string",
@@ -1375,6 +1387,8 @@ func TestSigstoreimpl_SelectorValuesFromSignature(t *testing.T) {
 			},
 			containerID: "000000",
 			want:        nil,
+			wantErr:     true,
+			wantedErr:   fmt.Errorf("error getting signature content: expected payload body to be a string but got int instead"),
 		},
 		{
 			name: "selector from signature, bundle payload body is not valid base64",
@@ -1396,6 +1410,8 @@ func TestSigstoreimpl_SelectorValuesFromSignature(t *testing.T) {
 			},
 			containerID: "000000",
 			want:        nil,
+			wantErr:     true,
+			wantedErr:   fmt.Errorf("error getting signature content: illegal base64 data at input byte 3"),
 		},
 		{
 			name: "selector from signature, bundle payload body has no signature content",
@@ -1417,6 +1433,8 @@ func TestSigstoreimpl_SelectorValuesFromSignature(t *testing.T) {
 			},
 			containerID: "000000",
 			want:        nil,
+			wantErr:     true,
+			wantedErr:   fmt.Errorf("error getting signature content: bundle payload body has no signature content"),
 		},
 		{
 			name: "selector from signature, bundle payload body signature content is empty",
@@ -1438,6 +1456,8 @@ func TestSigstoreimpl_SelectorValuesFromSignature(t *testing.T) {
 			},
 			containerID: "000000",
 			want:        nil,
+			wantErr:     true,
+			wantedErr:   fmt.Errorf("error getting signature content: bundle payload body has no signature content"),
 		},
 		{
 			name: "selector from signature, bundle payload body is not a valid JSON",
@@ -1459,6 +1479,8 @@ func TestSigstoreimpl_SelectorValuesFromSignature(t *testing.T) {
 			},
 			containerID: "000000",
 			want:        nil,
+			wantErr:     true,
+			wantedErr:   fmt.Errorf("error getting signature content: failed to parse bundle body: invalid character ',' looking for beginning of value"),
 		},
 		{
 			name: "selector from signature, empty signature array",
@@ -1471,6 +1493,8 @@ func TestSigstoreimpl_SelectorValuesFromSignature(t *testing.T) {
 			},
 			containerID: "000000",
 			want:        nil,
+			wantErr:     true,
+			wantedErr:   fmt.Errorf("error getting signature subject: signature is nil"),
 		},
 		{
 			name: "selector from signature, single image signature, no payload",
@@ -1483,6 +1507,8 @@ func TestSigstoreimpl_SelectorValuesFromSignature(t *testing.T) {
 			},
 			containerID: "000000",
 			want:        nil,
+			wantErr:     true,
+			wantedErr:   fmt.Errorf("error getting signature subject: no payload test"),
 		},
 		{
 			name: "selector from signature, single image signature, no certs",
@@ -1497,6 +1523,8 @@ func TestSigstoreimpl_SelectorValuesFromSignature(t *testing.T) {
 			},
 			containerID: "000000",
 			want:        nil,
+			wantErr:     true,
+			wantedErr:   fmt.Errorf("error getting signature subject: failed to access signature certificate: no cert test"),
 		},
 		{
 			name: "selector from signature, single image signature,garbled subject in signature",
@@ -1511,8 +1539,11 @@ func TestSigstoreimpl_SelectorValuesFromSignature(t *testing.T) {
 			},
 			containerID: "000000",
 			want:        nil,
+			wantErr:     true,
+			wantedErr:   fmt.Errorf("error getting signature subject: invalid character '0' in string escape code"),
 		},
 	}
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			sigstore := &sigstoreImpl{
@@ -1520,7 +1551,15 @@ func TestSigstoreimpl_SelectorValuesFromSignature(t *testing.T) {
 				subjectAllowList: tt.fields.subjectAllowList,
 				logger:           hclog.Default(),
 			}
-			got := sigstore.SelectorValuesFromSignature(tt.args.signature, tt.containerID)
+			got, err := sigstore.SelectorValuesFromSignature(tt.args.signature, tt.containerID)
+			if err != nil {
+				if !tt.wantErr {
+					t.Errorf("sigstoreImpl.SelectorValuesFromSignature() has error, wantErr %v", tt.wantErr)
+				}
+				require.EqualError(t, err, tt.wantedErr.Error(), "sigstoreImpl.SelectorValuesFromSignature() error = %v, wantedErr = %v", err, tt.wantedErr)
+			} else if tt.wantErr {
+				t.Errorf("sigstoreImpl.SelectorValuesFromSignature() no error, wantErr = %v, wantedErr %v", tt.wantErr, tt.wantedErr)
+			}
 			require.Equal(t, got, tt.want, "sigstoreImpl.SelectorValuesFromSignature() = %v, want %v", got, tt.want)
 		})
 	}
