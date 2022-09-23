@@ -665,88 +665,6 @@ func TestSigstoreimpl_ExtractSelectorsFromSignatures(t *testing.T) {
 	}
 }
 
-// aqui
-/* func Test_certSubject(t *testing.T) {
-	type args struct {
-		c *x509.Certificate
-	}
-	tests := []struct {
-		name string
-		args args
-		want string
-	}{
-		{
-			name: "certSubject_single_email",
-			args: args{
-				c: &x509.Certificate{
-					EmailAddresses: []string{"example@example.com"},
-				},
-			},
-			want: "example@example.com",
-		},
-		{
-			name: "certSubject_multiple_email",
-			args: args{
-				c: &x509.Certificate{
-					EmailAddresses: []string{"example1@example1.com", "example2@example1.com"},
-				},
-			},
-			want: "example1@example1.com",
-		},
-		{
-			name: "certSubject_from_single_URI",
-			args: args{
-				c: &x509.Certificate{
-					URIs: []*url.URL{
-						{
-							User: url.User("example"), Host: "example2.com"},
-					},
-				},
-			},
-			want: "example@example2.com",
-		},
-		{
-			name: "certSubject_from_multiple_URIs",
-			args: args{
-				c: &x509.Certificate{
-					URIs: []*url.URL{
-						{
-							User: url.User("example1"),
-							Host: "example2.com",
-						},
-						{
-							User: url.User("example2"),
-							Host: "example2.com",
-						},
-					},
-				},
-			},
-			want: "example1@example2.com",
-		},
-		{
-			name: "certSubject_empty_certificate",
-			args: args{
-				c: &x509.Certificate{},
-			},
-			want: "",
-		},
-		{
-			name: "certSubject_nil_certificate",
-			args: args{
-				c: nil,
-			},
-			want: "",
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := certSubject(tt.args.c); got != tt.want {
-				t.Errorf("certSubject() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-} */
-
 func TestSigstoreimpl_ShouldSkipImage(t *testing.T) {
 	type fields struct {
 		skippedImages map[string](bool)
@@ -1575,20 +1493,6 @@ func TestSigstoreimpl_SelectorValuesFromSignature(t *testing.T) {
 			args: args{
 				signature: &noCertSignature{
 					payload: []byte(`{"critical": {"identity": {"docker-reference": "docker-registry.com/some/image"},"image": {"docker-manifest-digest": "some digest"},"type": "some type"},"optional": {"subject": "spirex@example.com","key2": "value 2","key3": "value 3"}}`),
-				},
-			},
-			containerID: "000000",
-			want:        nil,
-		},
-		{
-			name: "selector from signature, single image signature,garbled subject in signature",
-			fields: fields{
-				allowListEnabled: false,
-				subjectAllowList: nil,
-			},
-			args: args{
-				signature: &signature{
-					payload: []byte(`{"critical": {"identity": {"docker-reference": "docker-registry.com/some/image"},"image": {"docker-manifest-digest": "some digest"},"type": "some type"},"optional": {"subject": "s\\\\||as\0\0aasdasd/....???/.>wd12<><,,,><{}{pirex@example.com","key2": "value 2","key3": "value 3"}}`),
 				},
 			},
 			containerID: "000000",
