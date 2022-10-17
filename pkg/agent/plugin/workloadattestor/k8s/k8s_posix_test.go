@@ -223,9 +223,9 @@ func (s *Suite) TestFailedToCreateHelperFromConfigure() {
 }
 
 func (s *Suite) TestHelperConfigure() {
-	rekorUrl := "https://rekor.example.com/"
-	invalidUrl := "invalid url"
-	defaultRekorUrl := "http://rekor.sigstore.dev/"
+	rekorURL := "https://rekor.example.com/"
+	invalidURL := "invalid url"
+	defaultRekorURL := "http://rekor.sigstore.dev/"
 	for _, tt := range []struct {
 		name      string
 		config    *HCLConfig
@@ -243,14 +243,14 @@ func (s *Suite) TestHelperConfigure() {
 			config: &HCLConfig{
 				Experimental: &ExperimentalK8SConfig{
 					Sigstore: &SigstoreHCLConfig{
-						RekorURL:                  &rekorUrl,
+						RekorURL:                  &rekorURL,
 						SkippedImages:             []string{"sha:image1hash", "sha:image2hash"},
 						AllowedSubjectListEnabled: true,
 						AllowedSubjects:           []string{"spirex@example.com", "spirex1@example.com"},
 					},
 				},
 			},
-			expectRekoURL: rekorUrl,
+			expectRekoURL: rekorURL,
 			expectSkippedImages: map[string]struct{}{
 				"sha:image1hash": {},
 				"sha:image2hash": {},
@@ -266,11 +266,11 @@ func (s *Suite) TestHelperConfigure() {
 			config: &HCLConfig{
 				Experimental: &ExperimentalK8SConfig{
 					Sigstore: &SigstoreHCLConfig{
-						RekorURL: &rekorUrl,
+						RekorURL: &rekorURL,
 					},
 				},
 			},
-			expectRekoURL: rekorUrl,
+			expectRekoURL: rekorURL,
 		},
 		{
 			name: "missing url, use default",
@@ -281,14 +281,14 @@ func (s *Suite) TestHelperConfigure() {
 					},
 				},
 			},
-			expectRekoURL: defaultRekorUrl,
+			expectRekoURL: defaultRekorURL,
 		},
 		{
 			name: "failed to set url",
 			config: &HCLConfig{
 				Experimental: &ExperimentalK8SConfig{
 					Sigstore: &SigstoreHCLConfig{
-						RekorURL: &invalidUrl,
+						RekorURL: &invalidURL,
 					},
 				},
 			},
