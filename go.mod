@@ -354,3 +354,5 @@ require (
 	sigs.k8s.io/structured-merge-diff/v4 v4.2.3 // indirect
 	sigs.k8s.io/yaml v1.3.0 // indirect
 )
+
+replace github.com/zaffka/mongodb-boltdb-mock v0.0.0-20180816124423-49954d88fa3e => github.com/zaffka/mongodb-boltdb-mock v0.0.0-20221014194027-b89b2a05deff
