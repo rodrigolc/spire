@@ -164,12 +164,36 @@ func TestCacheimpl_GetSignature(t *testing.T) {
 func TestCacheimpl_PutSignature(t *testing.T) {
 	m := make(map[string]MapItem)
 	items := list.New()
+	m[selectors1.Key] = MapItem{
+		item:    &selectors1,
+		element: items.PushFront(selectors1.Key),
+	}
+	m[selectors1.Key] = MapItem{
+		item:    &selectors1,
+		element: items.PushFront(selectors1.Key),
+	}
+	m[selectors2.Key] = MapItem{
+		item:    &selectors2,
+		element: items.PushFront(selectors2.Key),
+	}
+	m[selectors3.Key] = MapItem{
+		item:    &selectors3,
+		element: items.PushFront(selectors3.Key),
+	}
+	m[selectors3Updated.Key] = MapItem{
+		item:    &selectors3Updated,
+		element: items.PushFront(selectors3Updated.Key),
+	}
 
-	cacheInstance := &cacheImpl{
-		size:     2,
-		items:    items,
-		mutex:    sync.RWMutex{},
-		itemsMap: m,
+	listReorder := list.New()
+	mapReorder := make(map[string]MapItem)
+	mapReorder[selectors2.Key] = MapItem{
+		item:    &selectors2,
+		element: listReorder.PushFront(selectors2.Key),
+	}
+	mapReorder[selectors1.Key] = MapItem{
+		item:    &selectors1,
+		element: listReorder.PushFront(selectors1.Key),
 	}
 
 	tests := []struct {
@@ -217,14 +241,34 @@ func TestCacheimpl_PutSignature(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		cacheInstance.PutSignature(*tt.item)
-		gotLen := cacheInstance.items.Len()
-		if gotLen != tt.wantLength {
-			t.Errorf("Item count should be %v in test case %q", tt.wantLength, tt.name)
-		}
-		gotItem, present := m[tt.wantKey]
-		require.True(t, present, "key not found")
-		require.Equal(t, gotItem.item, tt.wantValue, "Value different than expected. \nGot: %v \nWant:%v", gotItem.item, tt.wantValue)
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			testMap := make(map[string]MapItem)
+			testItems := list.New()
+			testMap[selectors1.Key] = MapItem{
+				item:    &selectors1,
+				element: testItems.PushFront(selectors1.Key),
+			}
+			testMap[selectors1.Key] = MapItem{
+				item:    &selectors1,
+				element: testItems.PushFront(selectors1.Key),
+			}
+			testMap[selectors2.Key] = MapItem{
+				item:    &selectors2,
+				element: testItems.PushFront(selectors2.Key),
+			}
+			cacheInstance := cacheImpl{
+				size:     tt.wantLength,
+				items:    testItems,
+				mutex:    sync.RWMutex{},
+				itemsMap: testMap,
+			}
+			cacheInstance.PutSignature(*tt.item)
+
+			gotItem, present := testMap[tt.wantKey]
+			require.True(t, present, "key not found")
+			require.Equal(t, gotItem.item, tt.wantValue, "Value different than expected. \nGot: %v \nWant:%v", gotItem.item, tt.wantValue)
+		})
 	}
 }
 
