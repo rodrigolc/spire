@@ -85,18 +85,7 @@ func TestNewCache(t *testing.T) {
 }
 
 func TestCacheimpl_GetSignature(t *testing.T) {
-	m := make(map[string]MapItem)
-	items := list.New()
-
-	m[selectors1.Key] = MapItem{
-		item:    &selectors1,
-		element: items.PushFront(selectors1.Key),
-	}
-	m[selectors2.Key] = MapItem{
-		item:    &selectors2,
-		element: items.PushFront(selectors2.Key),
-	}
-
+	m, items := makeMapAndList(&selectors1, &selectors2)
 	cacheInstance := &cacheImpl{
 		size:     3,
 		items:    items,
@@ -480,42 +469,9 @@ func TestCacheimpl_CheckOverflowAndUpdates(t *testing.T) {
 }
 
 func TestCacheimpl_CheckOverflow(t *testing.T) {
-	listNoOverflow := list.New()
-	mapNoOverflow := make(map[string]MapItem)
-	mapNoOverflow[selectors1.Key] = MapItem{
-		item:    &selectors1,
-		element: listNoOverflow.PushFront(selectors1.Key),
-	}
-	mapNoOverflow[selectors2.Key] = MapItem{
-		item:    &selectors2,
-		element: listNoOverflow.PushFront(selectors2.Key),
-	}
-	mapNoOverflow[selectors3.Key] = MapItem{
-		item:    &selectors3,
-		element: listNoOverflow.PushFront(selectors3.Key),
-	}
-
-	listOverflow := list.New()
-	mapOverflow := make(map[string]MapItem)
-	mapOverflow[selectors2.Key] = MapItem{
-		item:    &selectors2,
-		element: listOverflow.PushFront(selectors2.Key),
-	}
-	mapOverflow[selectors3.Key] = MapItem{
-		item:    &selectors3,
-		element: listOverflow.PushFront(selectors3.Key),
-	}
-
-	listReorder := list.New()
-	mapReorder := make(map[string]MapItem)
-	mapReorder[selectors2.Key] = MapItem{
-		item:    &selectors2,
-		element: listReorder.PushFront(selectors2.Key),
-	}
-	mapReorder[selectors1.Key] = MapItem{
-		item:    &selectors1,
-		element: listReorder.PushFront(selectors1.Key),
-	}
+	mapNoOverflow, listNoOverflow := makeMapAndList(&selectors1, &selectors2, &selectors3)
+	mapOverflow, listOverflow := makeMapAndList(&selectors2, &selectors3)
+	mapReorder, listReorder := makeMapAndList(&selectors2, &selectors1)
 
 	testCases := []struct {
 		name       string
