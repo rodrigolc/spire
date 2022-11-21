@@ -218,7 +218,6 @@ func configureSigstoreClient(client sigstore.Sigstore, c *SigstoreHCLConfig, log
 	if c.SkippedImages != nil {
 		client.AddSkippedImage(c.SkippedImages)
 	}
-	client.EnableAllowSubjectList(c.AllowedSubjectListEnabled)
 	client.SetLogger(log)
 	client.ClearAllowedSubjects()
 	for _, subject := range c.AllowedSubjects {
