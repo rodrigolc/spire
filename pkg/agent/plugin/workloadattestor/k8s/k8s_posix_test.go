@@ -235,7 +235,7 @@ func (s *Suite) TestHelperConfigure() {
 
 		expectSkippedImages map[string]struct{}
 		expectRekoURL       string
-		expectSubjects      map[string]struct{}
+		expectSubjects      map[string]map[string]struct{}
 	}{
 		{
 			name: "sigstore is configured",
@@ -244,7 +244,7 @@ func (s *Suite) TestHelperConfigure() {
 					Sigstore: &SigstoreHCLConfig{
 						RekorURL:        &rekorURL,
 						SkippedImages:   []string{"sha:image1hash", "sha:image2hash"},
-						AllowedSubjects: []string{"spirex@example.com", "spirex1@example.com"},
+						AllowedSubjects: map[string][]string{"issuer": {"spirex@example.com", "spirex1@example.com"}},
 					},
 				},
 			},
@@ -253,9 +253,11 @@ func (s *Suite) TestHelperConfigure() {
 				"sha:image1hash": {},
 				"sha:image2hash": {},
 			},
-			expectSubjects: map[string]struct{}{
-				"spirex@example.com":  {},
-				"spirex1@example.com": {},
+			expectSubjects: map[string]map[string]struct{}{
+				"issuer": {
+					"spirex@example.com":  {},
+					"spirex1@example.com": {},
+				},
 			},
 		},
 		{
@@ -694,7 +696,7 @@ type sigstoreMock struct {
 	skippedSigSelectors []string
 	returnError         error
 	skippedImages       map[string]struct{}
-	allowedSubjects     map[string]struct{}
+	allowedSubjects     map[string]map[string]struct{}
 	log                 hclog.Logger
 
 	rekorURL string
@@ -769,11 +771,14 @@ func (s *sigstoreMock) SetRekorURL(url string) error {
 	return s.returnError
 }
 
-func (s *sigstoreMock) AddAllowedSubject(subject string) {
+func (s *sigstoreMock) AddAllowedSubject(issuer string, subject string) {
 	if s.allowedSubjects == nil {
-		s.allowedSubjects = make(map[string]struct{})
+		s.allowedSubjects = make(map[string]map[string]struct{})
 	}
-	s.allowedSubjects[subject] = struct{}{}
+	if _, ok := s.allowedSubjects[issuer]; !ok {
+		s.allowedSubjects[issuer] = make(map[string]struct{})
+	}
+	s.allowedSubjects[issuer][subject] = struct{}{}
 }
 
 func (s *sigstoreMock) AddSkippedImage(images []string) {
