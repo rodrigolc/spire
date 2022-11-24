@@ -139,7 +139,7 @@ type SigstoreHCLConfig struct {
 	SkippedImages []string `hcl:"skip_signature_verification_image_list"`
 
 	// AllowedSubjects is a list of subjects that should be allowed after verification
-	AllowedSubjects []string `hcl:"allowed_subjects_list"`
+	AllowedSubjects map[string][]string `hcl:"allowed_subjects_list"`
 }
 
 // k8sConfig holds the configuration distilled from HCL
