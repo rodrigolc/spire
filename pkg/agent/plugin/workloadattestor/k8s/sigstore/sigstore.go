@@ -7,7 +7,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/x509"
-	"crypto/x509/pkix"
+	"encoding/asn1"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -189,7 +189,7 @@ func (s *sigstoreImpl) SelectorValuesFromSignature(signature oci.Signature, cont
 		return nil, fmt.Errorf("error getting signature subject: %w", errors.New("empty subject"))
 	}
 
-	issuer, err := getSignatureIssuer(signature)
+	issuer, err := getSignatureProvider(signature)
 
 	if err != nil {
 		return nil, fmt.Errorf("error getting signature issuer: %w", err)
@@ -199,7 +199,7 @@ func (s *sigstoreImpl) SelectorValuesFromSignature(signature oci.Signature, cont
 	}
 
 	if issuerSubjects, ok := s.subjectAllowList[issuer]; !ok {
-		return nil, fmt.Errorf("signature issuer %q not in allow-list", subject)
+		return nil, fmt.Errorf("signature issuer %q not in allow-list", issuer)
 	} else if _, ok := issuerSubjects[subject]; !ok {
 		return nil, fmt.Errorf("subject %q not allowed for issuer %q", subject, issuer)
 	}
@@ -384,7 +384,7 @@ func getSignatureSubject(signature oci.Signature) (string, error) {
 	return "", errors.New("no subject found in signature")
 }
 
-func getSignatureIssuer(signature oci.Signature) (string, error) {
+func getSignatureProvider(signature oci.Signature) (string, error) {
 	if signature == nil {
 		return "", errors.New("signature is nil")
 	}
@@ -395,43 +395,22 @@ func getSignatureIssuer(signature oci.Signature) (string, error) {
 	if cert == nil {
 		return "", errors.New("no certificate found in signature")
 	}
-	return certIssuer(cert), nil
+	return certOIDCProvider(cert)
 }
 
-func certIssuer(cert *x509.Certificate) string {
+func certOIDCProvider(cert *x509.Certificate) (string, error) {
 	if cert == nil {
-		return ""
+		return "", errors.New("certificate is nil")
 	}
-	fmt.Printf("cert issuer: %q", cert.Issuer.String())
-	return findIssuerName(cert.Issuer)
-}
-
-func findIssuerName(issuer pkix.Name) string {
-	if len(issuer.Organization) > 0 {
-		return issuer.Organization[0]
-	}
-	if len(issuer.OrganizationalUnit) > 0 {
-		return issuer.OrganizationalUnit[0]
-	}
-	if len(issuer.CommonName) > 0 {
-		return issuer.CommonName
-	}
-	if len(issuer.Names) > 0 {
-		for _, name := range issuer.Names {
-			if returnString, ok := name.Value.(string); ok {
-				return returnString
-			}
-		}
-	}
-	if len(issuer.ExtraNames) > 0 {
-		for _, name := range issuer.ExtraNames {
-			if returnString, ok := name.Value.(string); ok {
-				return returnString
-			}
+	//OIDC token issuer IANA Object Identifier
+	objectIdentifier := asn1.ObjectIdentifier{1, 3, 6, 1, 4, 1, 57264, 1, 1}
+	for _, ext := range cert.Extensions {
+		if ext.Id.Equal(objectIdentifier) {
+			return string(ext.Value), nil
 		}
 	}
 
-	return ""
+	return "", errors.New("no OIDC issuer found in certificate extensions")
 }
 
 func getBundleSignatureContent(bundle *bundle.RekorBundle) (string, error) {
