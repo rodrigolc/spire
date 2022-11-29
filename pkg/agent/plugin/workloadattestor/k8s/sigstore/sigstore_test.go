@@ -11,6 +11,7 @@ import (
 	"crypto/rand"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"encoding/asn1"
 	"errors"
 	"fmt"
 	"math/big"
@@ -33,6 +34,10 @@ import (
 
 const (
 	maximumAmountCache = 10
+)
+
+var (
+	OIDCIssuerOID = asn1.ObjectIdentifier{1, 3, 6, 1, 4, 1, 57264, 1, 1}
 )
 
 func createCertificate(template *x509.Certificate, parent *x509.Certificate, pub interface{}, priv crypto.Signer) (*x509.Certificate, error) {
@@ -465,9 +470,10 @@ func TestSigstoreimpl_ExtractSelectorsFromSignatures(t *testing.T) {
 						},
 						cert: &x509.Certificate{
 							EmailAddresses: []string{"spirex@example.com"},
-							Issuer: pkix.Name{
-								CommonName: "issuer1",
-							},
+							Extensions: []pkix.Extension{{
+								Id:    OIDCIssuerOID,
+								Value: []byte(`issuer1`),
+							}},
 						},
 					},
 				},
@@ -500,9 +506,10 @@ func TestSigstoreimpl_ExtractSelectorsFromSignatures(t *testing.T) {
 						},
 						cert: &x509.Certificate{
 							EmailAddresses: []string{"spirex1@example.com"},
-							Issuer: pkix.Name{
-								CommonName: "issuer1",
-							},
+							Extensions: []pkix.Extension{{
+								Id:    OIDCIssuerOID,
+								Value: []byte(`issuer1`),
+							}},
 						},
 					},
 					signature{
@@ -516,9 +523,10 @@ func TestSigstoreimpl_ExtractSelectorsFromSignatures(t *testing.T) {
 						},
 						cert: &x509.Certificate{
 							EmailAddresses: []string{"spirex2@example.com"},
-							Issuer: pkix.Name{
-								CommonName: "issuer1",
-							},
+							Extensions: []pkix.Extension{{
+								Id:    OIDCIssuerOID,
+								Value: []byte(`issuer1`),
+							}},
 						},
 					},
 				},
@@ -565,9 +573,10 @@ func TestSigstoreimpl_ExtractSelectorsFromSignatures(t *testing.T) {
 								"spirex@example.com",
 								"spirex2@example.com",
 							},
-							Issuer: pkix.Name{
-								CommonName: "issuer1",
-							},
+							Extensions: []pkix.Extension{{
+								Id:    OIDCIssuerOID,
+								Value: []byte(`issuer1`),
+							}},
 						},
 						bundle: &bundle.RekorBundle{
 							Payload: bundle.RekorPayload{
@@ -611,9 +620,10 @@ func TestSigstoreimpl_ExtractSelectorsFromSignatures(t *testing.T) {
 									Path:   "somepath2",
 								},
 							},
-							Issuer: pkix.Name{
-								CommonName: "issuer1",
-							},
+							Extensions: []pkix.Extension{{
+								Id:    OIDCIssuerOID,
+								Value: []byte(`issuer1`),
+							}},
 						},
 						bundle: &bundle.RekorBundle{
 							Payload: bundle.RekorPayload{
@@ -680,11 +690,6 @@ func TestSigstoreimpl_ExtractSelectorsFromSignatures(t *testing.T) {
 				logger:           hclog.Default(),
 				subjectAllowList: tt.subjectAllowList,
 			}
-			// for issuer, subjects := range tt.subjectAllowList {
-			// 	for _, subject := range subjects {
-			// 		s.AddAllowedSubject(issuer, subject)
-			// 	}
-			// }
 			got := s.ExtractSelectorsFromSignatures(tt.args.signatures, tt.containerID)
 			require.Equal(t, tt.want, got, "sigstoreImpl.ExtractSelectorsFromSignatures() = %v, want %v", got, tt.want)
 		})
@@ -1321,9 +1326,10 @@ func TestSigstoreimpl_SelectorValuesFromSignature(t *testing.T) {
 					},
 					cert: &x509.Certificate{
 						EmailAddresses: []string{"spirex@example.com"},
-						Issuer: pkix.Name{
-							CommonName: "issuer1",
-						},
+						Extensions: []pkix.Extension{{
+							Id:    OIDCIssuerOID,
+							Value: []byte(`issuer1`),
+						}},
 					},
 				},
 			},
@@ -1352,9 +1358,10 @@ func TestSigstoreimpl_SelectorValuesFromSignature(t *testing.T) {
 					},
 					cert: &x509.Certificate{
 						EmailAddresses: nil,
-						Issuer: pkix.Name{
-							CommonName: "issuer1",
-						},
+						Extensions: []pkix.Extension{{
+							Id:    OIDCIssuerOID,
+							Value: []byte(`issuer1`),
+						}},
 					},
 				},
 			},
@@ -1370,9 +1377,10 @@ func TestSigstoreimpl_SelectorValuesFromSignature(t *testing.T) {
 					payload: []byte(`{"critical": {"identity": {"docker-reference": "docker-registry.com/some/image"},"image": {"docker-manifest-digest": "02c15a8d1735c65bb8ca86c716615d3c0d8beb87dc68ed88bb49192f90b184e2"},"type": "some type"},"optional": {"subject": "spirex1@example.com","key2": "value 2","key3": "value 3"}}`),
 					cert: &x509.Certificate{
 						EmailAddresses: []string{"spirex1@example.com"},
-						Issuer: pkix.Name{
-							CommonName: "issuer1",
-						},
+						Extensions: []pkix.Extension{{
+							Id:    OIDCIssuerOID,
+							Value: []byte(`issuer1`),
+						}},
 					},
 				},
 			},
@@ -1397,9 +1405,10 @@ func TestSigstoreimpl_SelectorValuesFromSignature(t *testing.T) {
 					},
 					cert: &x509.Certificate{
 						EmailAddresses: []string{"spirex@example.com"},
-						Issuer: pkix.Name{
-							CommonName: "issuer1",
-						},
+						Extensions: []pkix.Extension{{
+							Id:    OIDCIssuerOID,
+							Value: []byte(`issuer1`),
+						}},
 					},
 				},
 			},
@@ -1428,9 +1437,10 @@ func TestSigstoreimpl_SelectorValuesFromSignature(t *testing.T) {
 					},
 					cert: &x509.Certificate{
 						EmailAddresses: []string{"spirex@example.com"},
-						Issuer: pkix.Name{
-							CommonName: "issuer1",
-						},
+						Extensions: []pkix.Extension{{
+							Id:    OIDCIssuerOID,
+							Value: []byte(`issuer1`),
+						}},
 					},
 				},
 			},
@@ -1448,9 +1458,10 @@ func TestSigstoreimpl_SelectorValuesFromSignature(t *testing.T) {
 					payload: []byte(`{"critical": {"identity": {"docker-reference": "docker-registry.com/some/image"},"image": {"docker-manifest-digest": "02c15a8d1735c65bb8ca86c716615d3c0d8beb87dc68ed88bb49192f90b184e2"},"type": "some type"},"optional": {"subject": "spirex@example.com","key2": "value 2","key3": "value 3"}}`),
 					cert: &x509.Certificate{
 						EmailAddresses: []string{"spirex@example.com"},
-						Issuer: pkix.Name{
-							CommonName: "issuer1",
-						},
+						Extensions: []pkix.Extension{{
+							Id:    OIDCIssuerOID,
+							Value: []byte(`issuer1`),
+						}},
 					},
 				},
 			},
@@ -1475,9 +1486,10 @@ func TestSigstoreimpl_SelectorValuesFromSignature(t *testing.T) {
 					},
 					cert: &x509.Certificate{
 						EmailAddresses: []string{"spirex@example.com"},
-						Issuer: pkix.Name{
-							CommonName: "issuer1",
-						},
+						Extensions: []pkix.Extension{{
+							Id:    OIDCIssuerOID,
+							Value: []byte(`issuer1`),
+						}},
 					},
 				},
 			},
@@ -1502,9 +1514,10 @@ func TestSigstoreimpl_SelectorValuesFromSignature(t *testing.T) {
 					},
 					cert: &x509.Certificate{
 						EmailAddresses: []string{"spirex@example.com"},
-						Issuer: pkix.Name{
-							CommonName: "issuer1",
-						},
+						Extensions: []pkix.Extension{{
+							Id:    OIDCIssuerOID,
+							Value: []byte(`issuer1`),
+						}},
 					},
 				},
 			},
@@ -1529,9 +1542,10 @@ func TestSigstoreimpl_SelectorValuesFromSignature(t *testing.T) {
 					},
 					cert: &x509.Certificate{
 						EmailAddresses: []string{"spirex@example.com"},
-						Issuer: pkix.Name{
-							CommonName: "issuer1",
-						},
+						Extensions: []pkix.Extension{{
+							Id:    OIDCIssuerOID,
+							Value: []byte(`issuer1`),
+						}},
 					},
 				},
 			},
@@ -1556,9 +1570,10 @@ func TestSigstoreimpl_SelectorValuesFromSignature(t *testing.T) {
 					},
 					cert: &x509.Certificate{
 						EmailAddresses: []string{"spirex@example.com"},
-						Issuer: pkix.Name{
-							CommonName: "issuer1",
-						},
+						Extensions: []pkix.Extension{{
+							Id:    OIDCIssuerOID,
+							Value: []byte(`issuer1`),
+						}},
 					},
 				},
 			},
@@ -1583,9 +1598,10 @@ func TestSigstoreimpl_SelectorValuesFromSignature(t *testing.T) {
 					},
 					cert: &x509.Certificate{
 						EmailAddresses: []string{"spirex@example.com"},
-						Issuer: pkix.Name{
-							CommonName: "issuer1",
-						},
+						Extensions: []pkix.Extension{{
+							Id:    OIDCIssuerOID,
+							Value: []byte(`issuer1`),
+						}},
 					},
 				},
 			},
@@ -1632,9 +1648,10 @@ func TestSigstoreimpl_SelectorValuesFromSignature(t *testing.T) {
 					payload: []byte(`{"critical": {"identity": {"docker-reference": "docker-registry.com/some/image"},"image": {"docker-manifest-digest": "some digest"},"type": "some type"},"optional": {"subject": "s\\\\||as\0\0aasdasd/....???/.>wd12<><,,,><{}{pirex@example.com","key2": "value 2","key3": "value 3"}}`),
 					cert: &x509.Certificate{
 						EmailAddresses: []string{"spirex@example.com"},
-						Issuer: pkix.Name{
-							CommonName: "issuer1",
-						},
+						Extensions: []pkix.Extension{{
+							Id:    OIDCIssuerOID,
+							Value: []byte(`issuer1`),
+						}},
 					},
 				},
 			},
@@ -1702,9 +1719,10 @@ func TestSigstoreimpl_AttestContainerSignatures(t *testing.T) {
 							},
 							cert: &x509.Certificate{
 								EmailAddresses: []string{"spirex@example.com"},
-								Issuer: pkix.Name{
-									CommonName: "issuer1",
-								},
+								Extensions: []pkix.Extension{{
+									Id:    OIDCIssuerOID,
+									Value: []byte(`issuer1`),
+								}},
 							},
 						},
 					}, true, nil),
