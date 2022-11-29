@@ -402,7 +402,7 @@ func certOIDCProvider(cert *x509.Certificate) (string, error) {
 	if cert == nil {
 		return "", errors.New("certificate is nil")
 	}
-	//OIDC token issuer IANA Object Identifier
+	// OIDC token issuer Object Identifier
 	objectIdentifier := asn1.ObjectIdentifier{1, 3, 6, 1, 4, 1, 57264, 1, 1}
 	for _, ext := range cert.Extensions {
 		if ext.Id.Equal(objectIdentifier) {
