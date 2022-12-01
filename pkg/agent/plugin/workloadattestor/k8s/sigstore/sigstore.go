@@ -41,7 +41,6 @@ type Sigstore interface {
 	AddSkippedImage(imageID []string)
 	ClearSkipList()
 	AddAllowedSubject(subject string)
-	EnableAllowSubjectList(bool)
 	ClearAllowedSubjects()
 	SetRekorURL(rekorURL string) error
 	SetLogger(logger hclog.Logger)
@@ -119,7 +118,6 @@ func defaultCheckOptsFunction(rekorURL url.URL) (*cosign.CheckOpts, error) {
 type sigstoreImpl struct {
 	functionHooks    sigstoreFunctionHooks
 	skippedImages    map[string]struct{}
-	allowListEnabled bool
 	subjectAllowList map[string]struct{}
 	rekorURL         url.URL
 	logger           hclog.Logger
@@ -190,10 +188,8 @@ func (s *sigstoreImpl) SelectorValuesFromSignature(signature oci.Signature, cont
 		return nil, fmt.Errorf("error getting signature subject: %w", errors.New("empty subject"))
 	}
 
-	if s.allowListEnabled {
-		if _, ok := s.subjectAllowList[subject]; !ok {
-			return nil, fmt.Errorf("subject %q not in allow-list", subject)
-		}
+	if _, ok := s.subjectAllowList[subject]; !ok {
+		return nil, fmt.Errorf("subject %q not in allow-list", subject)
 	}
 
 	selectorsFromSignatures := &SelectorsFromSignatures{Subject: subject}
@@ -279,10 +275,6 @@ func (s *sigstoreImpl) AddAllowedSubject(subject string) {
 
 func (s *sigstoreImpl) ClearAllowedSubjects() {
 	s.subjectAllowList = nil
-}
-
-func (s *sigstoreImpl) EnableAllowSubjectList(flag bool) {
-	s.allowListEnabled = flag
 }
 
 func (s *sigstoreImpl) AttestContainerSignatures(ctx context.Context, status *corev1.ContainerStatus) ([]string, error) {
