@@ -1796,7 +1796,7 @@ func TestSigstoreimpl_SetRekorURL(t *testing.T) {
 				rekorURL: url.URL{},
 			},
 			args: args{
-				rekorURL: "path-no-host", // URI parser uses this as path, not host
+				rekorURL: "https:///", // URI parser uses this as path, not host
 			},
 			want:      url.URL{},
 			wantedErr: fmt.Errorf("host is required on rekor URL"),
@@ -1811,6 +1811,17 @@ func TestSigstoreimpl_SetRekorURL(t *testing.T) {
 			},
 			want:      url.URL{},
 			wantedErr: fmt.Errorf("invalid rekor URL Scheme %q", "abc"),
+		},
+		{
+			name: "SetRekorURL with empty URL scheme",
+			fields: fields{
+				rekorURL: url.URL{},
+			},
+			args: args{
+				rekorURL: "invalid.url.com", // empty scheme
+			},
+			want:      url.URL{},
+			wantedErr: fmt.Errorf("invalid rekor URL Scheme \"\""),
 		},
 	}
 	for _, tt := range tests {
