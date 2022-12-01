@@ -1027,23 +1027,23 @@ func TestSigstoreimpl_ValidateImage(t *testing.T) {
 
 func TestSigstoreimpl_AddAllowedSubject(t *testing.T) {
 	tests := []struct {
-		name				string
-		subjectAllowList	map[string]struct{}
-		subject				string
-		want				map[string]struct{}
+		name             string
+		subjectAllowList map[string]struct{}
+		subject          string
+		want             map[string]struct{}
 	}{
 		{
-			name: "add allowed subject to nil map",
+			name:             "add allowed subject to nil map",
 			subjectAllowList: nil,
-			subject: "spirex@example.com",
+			subject:          "spirex@example.com",
 			want: map[string]struct{}{
 				"spirex@example.com": struct{}{},
 			},
 		},
 		{
-			name: "add allowed subject to empty map",
+			name:             "add allowed subject to empty map",
 			subjectAllowList: map[string]struct{}{},
-			subject: "spirex@example.com",
+			subject:          "spirex@example.com",
 			want: map[string]struct{}{
 				"spirex@example.com": struct{}{},
 			},
@@ -1097,9 +1097,9 @@ func TestSigstoreimpl_AddAllowedSubject(t *testing.T) {
 
 func TestSigstoreimpl_ClearAllowedSubjects(t *testing.T) {
 	tests := []struct {
-		name				string
-		subjectAllowList	map[string]struct{}
-		want				map[string]struct{}
+		name             string
+		subjectAllowList map[string]struct{}
+		want             map[string]struct{}
 	}{
 
 		{
@@ -1114,14 +1114,14 @@ func TestSigstoreimpl_ClearAllowedSubjects(t *testing.T) {
 			want: nil,
 		},
 		{
-			name: "clear empty map",
+			name:             "clear empty map",
 			subjectAllowList: map[string]struct{}{},
-			want: nil,
+			want:             nil,
 		},
 		{
-			name: "clear nil map",
+			name:             "clear nil map",
 			subjectAllowList: nil,
-			want: nil,
+			want:             nil,
 		},
 	}
 	for _, tt := range tests {
@@ -1139,22 +1139,22 @@ func TestSigstoreimpl_ClearAllowedSubjects(t *testing.T) {
 
 func TestSigstoreimpl_EnableAllowSubjectList(t *testing.T) {
 	tests := []struct {
-		name				string
-		allowListEnabled	bool
-		flag				bool
-		want				bool
+		name             string
+		allowListEnabled bool
+		flag             bool
+		want             bool
 	}{
 		{
-			name: "disabling subject allow list",
+			name:             "disabling subject allow list",
 			allowListEnabled: true,
-			flag: false,
-			want: false,
+			flag:             false,
+			want:             false,
 		},
 		{
-			name: "enabling subject allow list",
+			name:             "enabling subject allow list",
 			allowListEnabled: false,
-			flag: true,
-			want: true,
+			flag:             true,
+			want:             true,
 		},
 	}
 	for _, tt := range tests {
