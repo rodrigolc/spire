@@ -204,7 +204,6 @@ func (s *sigstoreImpl) SelectorValuesFromSignature(signature oci.Signature, cont
 		return nil, errors.New("error getting signature log ID: empty log ID")
 	case bundle.Payload.IntegratedTime == 0:
 		return nil, errors.New("error getting signature integrated time: integrated time is 0")
-
 	}
 	sigContent, err := getBundleSignatureContent(bundle)
 	if err != nil {
