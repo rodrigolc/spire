@@ -1796,7 +1796,7 @@ func TestSigstoreimpl_SetRekorURL(t *testing.T) {
 				rekorURL: url.URL{},
 			},
 			args: args{
-				rekorURL: "https:///", // URI parser uses this as path, not host
+				rekorURL: "path-no-host", // URI parser uses this as path, not host
 			},
 			want:      url.URL{},
 			wantedErr: fmt.Errorf("host is required on rekor URL"),
@@ -1807,7 +1807,7 @@ func TestSigstoreimpl_SetRekorURL(t *testing.T) {
 				rekorURL: url.URL{},
 			},
 			args: args{
-				rekorURL: "abc://invalid.url.com", // invalid scheme
+				rekorURL: "abc://invalid.scheme.com", // invalid scheme
 			},
 			want:      url.URL{},
 			wantedErr: fmt.Errorf("invalid rekor URL Scheme %q", "abc"),
@@ -1818,7 +1818,7 @@ func TestSigstoreimpl_SetRekorURL(t *testing.T) {
 				rekorURL: url.URL{},
 			},
 			args: args{
-				rekorURL: "invalid.url.com", // empty scheme
+				rekorURL: "//no.scheme.com/path", // empty scheme
 			},
 			want:      url.URL{},
 			wantedErr: fmt.Errorf("invalid rekor URL Scheme \"\""),
