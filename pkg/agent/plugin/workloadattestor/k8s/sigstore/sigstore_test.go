@@ -699,7 +699,7 @@ func TestSigstoreimpl_ShouldSkipImage(t *testing.T) {
 			} else {
 				require.NoError(t, err)
 			}
-			require.Equal(t, got, tt.want)
+			require.Equal(t, tt.want, got)
 		})
 	}
 }
@@ -757,7 +757,7 @@ func TestSigstoreimpl_AddSkippedImage(t *testing.T) {
 				skippedImages: tt.skippedImages,
 			}
 			sigstore.AddSkippedImage(tt.imageID)
-			require.Equal(t, sigstore.skippedImages, tt.want)
+			require.Equal(t, tt.want, sigstore.skippedImages)
 		})
 	}
 }
@@ -1425,7 +1425,7 @@ func TestSigstoreimpl_SelectorValuesFromSignature(t *testing.T) {
 				}
 			}
 			got, err := sigstore.SelectorValuesFromSignature(tt.signature)
-			assert.Equal(t, got, tt.want)
+			assert.Equal(t, tt.want, got)
 			if tt.wantedErr != nil {
 				require.EqualError(t, err, tt.wantedErr.Error())
 				return
@@ -1711,7 +1711,7 @@ func TestSigstoreimpl_SetRekorURL(t *testing.T) {
 			} else {
 				require.NoError(t, err)
 			}
-			require.Equal(t, sigstore.rekorURL, tt.want)
+			require.Equal(t, tt.want, sigstore.rekorURL)
 		})
 	}
 }
