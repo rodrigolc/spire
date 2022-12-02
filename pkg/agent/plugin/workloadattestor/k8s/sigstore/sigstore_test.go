@@ -1642,27 +1642,17 @@ func TestSigstoreimpl_AttestContainerSignatures(t *testing.T) {
 }
 
 func TestSigstoreimpl_SetRekorURL(t *testing.T) {
-	type fields struct {
-		rekorURL url.URL
-	}
-	type args struct {
-		rekorURL string
-	}
 	tests := []struct {
-		name      string
-		fields    fields
-		args      args
-		want      url.URL
-		wantedErr error
+		name        string
+		rekorURL    url.URL
+		rekorURLArg string
+		want        url.URL
+		wantedErr   error
 	}{
 		{
-			name: "SetRekorURL",
-			fields: fields{
-				rekorURL: url.URL{},
-			},
-			args: args{
-				rekorURL: "https://rekor.com",
-			},
+			name:        "SetRekorURL",
+			rekorURL:    url.URL{},
+			rekorURLArg: "https://rekor.com",
 			want: url.URL{
 				Scheme: "https",
 				Host:   "rekor.com",
@@ -1670,15 +1660,11 @@ func TestSigstoreimpl_SetRekorURL(t *testing.T) {
 		},
 		{
 			name: "SetRekorURL with empty url",
-			fields: fields{
-				rekorURL: url.URL{
-					Scheme: "https",
-					Host:   "non.empty.url",
-				},
+			rekorURL: url.URL{
+				Scheme: "https",
+				Host:   "non.empty.url",
 			},
-			args: args{
-				rekorURL: "",
-			},
+			rekorURLArg: "",
 			want: url.URL{
 				Scheme: "https",
 				Host:   "non.empty.url",
@@ -1686,56 +1672,40 @@ func TestSigstoreimpl_SetRekorURL(t *testing.T) {
 			wantedErr: fmt.Errorf("rekor URL is empty"),
 		},
 		{
-			name: "SetRekorURL with invalid URL",
-			fields: fields{
-				rekorURL: url.URL{},
-			},
-			args: args{
-				rekorURL: "http://invalid.{{}))}.url.com", // invalid url
-			},
-			want:      url.URL{},
-			wantedErr: fmt.Errorf("failed parsing rekor URI: parse %q: invalid character %q in host name", "http://invalid.{{}))}.url.com", "{"),
+			name:        "SetRekorURL with invalid URL",
+			rekorURL:    url.URL{},
+			rekorURLArg: "http://invalid.{{}))}.url.com", // invalid url
+			want:        url.URL{},
+			wantedErr:   fmt.Errorf("failed parsing rekor URI: parse %q: invalid character %q in host name", "http://invalid.{{}))}.url.com", "{"),
 		},
 		{
-			name: "SetRekorURL with empty host url",
-			fields: fields{
-				rekorURL: url.URL{},
-			},
-			args: args{
-				rekorURL: "path-no-host", // URI parser uses this as path, not host
-			},
-			want:      url.URL{},
-			wantedErr: fmt.Errorf("host is required on rekor URL"),
+			name:        "SetRekorURL with empty host url",
+			rekorURL:    url.URL{},
+			rekorURLArg: "path-no-host", // URI parser uses this as path, not host
+			want:        url.URL{},
+			wantedErr:   fmt.Errorf("host is required on rekor URL"),
 		},
 		{
-			name: "SetRekorURL with invalid URL scheme",
-			fields: fields{
-				rekorURL: url.URL{},
-			},
-			args: args{
-				rekorURL: "abc://invalid.scheme.com", // invalid scheme
-			},
-			want:      url.URL{},
-			wantedErr: fmt.Errorf("invalid rekor URL Scheme %q", "abc"),
+			name:        "SetRekorURL with invalid URL scheme",
+			rekorURL:    url.URL{},
+			rekorURLArg: "abc://invalid.scheme.com", // invalid scheme
+			want:        url.URL{},
+			wantedErr:   fmt.Errorf("invalid rekor URL Scheme %q", "abc"),
 		},
 		{
-			name: "SetRekorURL with empty URL scheme",
-			fields: fields{
-				rekorURL: url.URL{},
-			},
-			args: args{
-				rekorURL: "//no.scheme.com/path", // empty scheme
-			},
-			want:      url.URL{},
-			wantedErr: fmt.Errorf("invalid rekor URL Scheme \"\""),
+			name:        "SetRekorURL with empty URL scheme",
+			rekorURL:    url.URL{},
+			rekorURLArg: "//no.scheme.com/path", // empty scheme
+			want:        url.URL{},
+			wantedErr:   fmt.Errorf("invalid rekor URL Scheme \"\""),
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			sigstore := &sigstoreImpl{
-				rekorURL: tt.fields.rekorURL,
+				rekorURL: tt.rekorURL,
 			}
-			err := sigstore.SetRekorURL(tt.args.rekorURL)
+			err := sigstore.SetRekorURL(tt.rekorURLArg)
 			if tt.wantedErr != nil {
 				require.EqualError(t, err, tt.wantedErr.Error())
 			} else {
