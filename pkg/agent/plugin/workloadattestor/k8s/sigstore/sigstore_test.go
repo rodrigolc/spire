@@ -833,72 +833,40 @@ func TestSigstoreimpl_AddSkippedImage(t *testing.T) {
 }
 
 func TestSigstoreimpl_ClearSkipList(t *testing.T) {
-	type fields struct {
-		verifyFunction             func(context context.Context, ref name.Reference, co *cosign.CheckOpts) ([]oci.Signature, bool, error)
-		fetchImageManifestFunction func(ref name.Reference, options ...remote.Option) (*remote.Descriptor, error)
-		skippedImages              map[string]struct{}
-	}
+
 	tests := []struct {
-		name   string
-		fields fields
-		want   map[string]struct{}
+		skippedImages map[string]struct{}
+		name          string
 	}{
 		{
 			name: "clear single image in map",
-			fields: fields{
-
-				verifyFunction:             nil,
-				fetchImageManifestFunction: nil,
-				skippedImages: map[string]struct{}{
-					"sha256:sampleimagehash": struct{}{},
-				},
+			skippedImages: map[string]struct{}{
+				"sha256:sampleimagehash": struct{}{},
 			},
-			want: nil,
 		},
 		{
 			name: "clear multiple images map",
-			fields: fields{
-				verifyFunction:             nil,
-				fetchImageManifestFunction: nil,
-				skippedImages: map[string]struct{}{
-					"sha256:sampleimagehash":  struct{}{},
-					"sha256:sampleimagehash1": struct{}{},
-				},
+			skippedImages: map[string]struct{}{
+				"sha256:sampleimagehash":  struct{}{},
+				"sha256:sampleimagehash1": struct{}{},
 			},
-			want: nil,
 		},
 		{
-			name: "clear on empty map",
-			fields: fields{
-				verifyFunction:             nil,
-				fetchImageManifestFunction: nil,
-				skippedImages:              map[string]struct{}{},
-			},
-			want: nil,
+			name:          "clear on empty map",
+			skippedImages: map[string]struct{}{},
 		},
 		{
-			name: "clear on nil map",
-			fields: fields{
-				verifyFunction:             nil,
-				fetchImageManifestFunction: nil,
-				skippedImages:              nil,
-			},
-			want: nil,
+			name:          "clear on nil map",
+			skippedImages: nil,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			sigstore := &sigstoreImpl{
-				functionHooks: sigstoreFunctionHooks{
-					verifyFunction:             tt.fields.verifyFunction,
-					fetchImageManifestFunction: tt.fields.fetchImageManifestFunction,
-				},
-				skippedImages: tt.fields.skippedImages,
+				skippedImages: tt.skippedImages,
 			}
 			sigstore.ClearSkipList()
-			if sigstore.skippedImages != nil {
-				t.Errorf("sigstore.skippedImages = %v, want %v", sigstore.skippedImages, tt.want)
-			}
+			require.Empty(t, sigstore.skippedImages)
 		})
 	}
 }
@@ -1149,7 +1117,6 @@ func TestSigstoreimpl_ClearAllowedSubjects(t *testing.T) {
 	tests := []struct {
 		name             string
 		subjectAllowList map[string]map[string]struct{}
-		want             map[string]map[string]struct{}
 	}{
 
 		{
@@ -1163,7 +1130,6 @@ func TestSigstoreimpl_ClearAllowedSubjects(t *testing.T) {
 					"spirex5@example.com": struct{}{},
 				},
 			},
-			want: nil,
 		},
 		{
 			name: "clear map with multiple issuers",
@@ -1181,17 +1147,14 @@ func TestSigstoreimpl_ClearAllowedSubjects(t *testing.T) {
 					"spirex6@example.com": struct{}{},
 				},
 			},
-			want: nil,
 		},
 		{
 			name:             "clear empty map",
 			subjectAllowList: map[string]map[string]struct{}{},
-			want:             nil,
 		},
 		{
 			name:             "clear nil map",
 			subjectAllowList: nil,
-			want:             nil,
 		},
 	}
 	for _, tt := range tests {
@@ -1200,9 +1163,7 @@ func TestSigstoreimpl_ClearAllowedSubjects(t *testing.T) {
 				subjectAllowList: tt.subjectAllowList,
 			}
 			sigstore.ClearAllowedSubjects()
-			if sigstore.subjectAllowList != nil {
-				t.Errorf("sigstore.subjectAllowList = %v, want %v", sigstore.subjectAllowList, tt.want)
-			}
+			require.Empty(t, sigstore.subjectAllowList)
 		})
 	}
 }
