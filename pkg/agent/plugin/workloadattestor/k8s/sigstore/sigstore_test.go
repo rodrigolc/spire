@@ -113,9 +113,6 @@ func TestSigstoreimpl_FetchImageSignatures(t *testing.T) {
 		functionBindings sigstoreFunctionBindings
 		rekorURL         url.URL
 	}
-	type args struct {
-		imageName string
-	}
 
 	defaultCheckOpts, _ := defaultCheckOptsFunction(rekorDefaultURL())
 	emptyURLCheckOpts, emptyError := defaultCheckOptsFunction(url.URL{})
@@ -125,7 +122,7 @@ func TestSigstoreimpl_FetchImageSignatures(t *testing.T) {
 	tests := []struct {
 		name                     string
 		fields                   fields
-		args                     args
+		imageName                string
 		wantedFetchArguments     fetchFunctionArguments
 		wantedVerifyArguments    verifyFunctionArguments
 		wantedCheckOptsArguments checkOptsFunctionArguments
@@ -146,9 +143,7 @@ func TestSigstoreimpl_FetchImageSignatures(t *testing.T) {
 				},
 				rekorURL: rekorDefaultURL(),
 			},
-			args: args{
-				imageName: "docker-registry.com/some/image@sha256:5fb2054478353fd8d514056d1745b3a9eef066deadda4b90967af7ca65ce6505",
-			},
+			imageName: "docker-registry.com/some/image@sha256:5fb2054478353fd8d514056d1745b3a9eef066deadda4b90967af7ca65ce6505",
 			wantedFetchArguments: fetchFunctionArguments{
 				ref:     name.MustParseReference("docker-registry.com/some/image@sha256:5fb2054478353fd8d514056d1745b3a9eef066deadda4b90967af7ca65ce6505"),
 				options: nil,
@@ -184,9 +179,7 @@ func TestSigstoreimpl_FetchImageSignatures(t *testing.T) {
 				},
 				rekorURL: rekorDefaultURL(),
 			},
-			args: args{
-				imageName: "docker-registry.com/some/image@sha256:5fb2054478353fd8d514056d1745b3a9eef066deadda4b90967af7ca65ce6505",
-			},
+			imageName: "docker-registry.com/some/image@sha256:5fb2054478353fd8d514056d1745b3a9eef066deadda4b90967af7ca65ce6505",
 			wantedFetchArguments: fetchFunctionArguments{
 				ref:     name.MustParseReference("docker-registry.com/some/image@sha256:5fb2054478353fd8d514056d1745b3a9eef066deadda4b90967af7ca65ce6505"),
 				options: nil,
@@ -218,9 +211,7 @@ func TestSigstoreimpl_FetchImageSignatures(t *testing.T) {
 				},
 				rekorURL: rekorDefaultURL(),
 			},
-			args: args{
-				imageName: "docker-registry.com/some/image@sha256:5fb2054478353fd8d514056d1745b3a9eef066deadda4b90967af7ca65ce6505",
-			},
+			imageName: "docker-registry.com/some/image@sha256:5fb2054478353fd8d514056d1745b3a9eef066deadda4b90967af7ca65ce6505",
 			wantedFetchArguments: fetchFunctionArguments{
 				ref:     name.MustParseReference("docker-registry.com/some/image@sha256:5fb2054478353fd8d514056d1745b3a9eef066deadda4b90967af7ca65ce6505"),
 				options: nil,
@@ -246,9 +237,7 @@ func TestSigstoreimpl_FetchImageSignatures(t *testing.T) {
 				},
 				rekorURL: rekorDefaultURL(),
 			},
-			args: args{
-				imageName: "docker-registry.com/some/image@sha256:5fb2054478353fd8d514056d1745b3a9eef066deadda4b90967af7ca65ce6505",
-			},
+			imageName: "docker-registry.com/some/image@sha256:5fb2054478353fd8d514056d1745b3a9eef066deadda4b90967af7ca65ce6505",
 			wantedFetchArguments: fetchFunctionArguments{
 				ref:     name.MustParseReference("docker-registry.com/some/image@sha256:5fb2054478353fd8d514056d1745b3a9eef066deadda4b90967af7ca65ce6505"),
 				options: nil,
@@ -278,9 +267,7 @@ func TestSigstoreimpl_FetchImageSignatures(t *testing.T) {
 				},
 				rekorURL: rekorDefaultURL(),
 			},
-			args: args{
-				imageName: "docker-registry.com/some/image@sha256:5fb2054478353fd8d514056d1745b3a9eef066deadda4b90967af7ca65ce6505",
-			},
+			imageName: "docker-registry.com/some/image@sha256:5fb2054478353fd8d514056d1745b3a9eef066deadda4b90967af7ca65ce6505",
 			wantedFetchArguments: fetchFunctionArguments{
 				ref:     name.MustParseReference("docker-registry.com/some/image@sha256:5fb2054478353fd8d514056d1745b3a9eef066deadda4b90967af7ca65ce6505"),
 				options: nil,
@@ -310,9 +297,7 @@ func TestSigstoreimpl_FetchImageSignatures(t *testing.T) {
 				},
 				rekorURL: rekorDefaultURL(),
 			},
-			args: args{
-				imageName: "docker-registry.com/some/image@sha256:5fb2054478353fd8d514056d1745b3a9eef066deadda4b90967af7ca65ce6505",
-			},
+			imageName: "docker-registry.com/some/image@sha256:5fb2054478353fd8d514056d1745b3a9eef066deadda4b90967af7ca65ce6505",
 			wantedFetchArguments: fetchFunctionArguments{
 				ref:     name.MustParseReference("docker-registry.com/some/image@sha256:5fb2054478353fd8d514056d1745b3a9eef066deadda4b90967af7ca65ce6505"),
 				options: nil,
@@ -338,9 +323,7 @@ func TestSigstoreimpl_FetchImageSignatures(t *testing.T) {
 				},
 				rekorURL: rekorDefaultURL(),
 			},
-			args: args{
-				imageName: "invali|].url.com/some/image@sha256:5fb2054478353fd8d514056d1745b3a9eef066deadda4b90967af7ca65ce6505",
-			},
+			imageName: "invali|].url.com/some/image@sha256:5fb2054478353fd8d514056d1745b3a9eef066deadda4b90967af7ca65ce6505",
 			want:      nil,
 			wantedErr: fmt.Errorf("error parsing image reference: %w", errors.New("could not parse reference: invali|].url.com/some/image@sha256:5fb2054478353fd8d514056d1745b3a9eef066deadda4b90967af7ca65ce6505")),
 		},
@@ -354,9 +337,7 @@ func TestSigstoreimpl_FetchImageSignatures(t *testing.T) {
 				},
 				rekorURL: url.URL{},
 			},
-			args: args{
-				imageName: "docker-registry.com/some/image@sha256:5fb2054478353fd8d514056d1745b3a9eef066deadda4b90967af7ca65ce6505",
-			},
+			imageName: "docker-registry.com/some/image@sha256:5fb2054478353fd8d514056d1745b3a9eef066deadda4b90967af7ca65ce6505",
 			wantedFetchArguments: fetchFunctionArguments{
 				ref:     name.MustParseReference("docker-registry.com/some/image@sha256:5fb2054478353fd8d514056d1745b3a9eef066deadda4b90967af7ca65ce6505"),
 				options: nil,
@@ -378,9 +359,7 @@ func TestSigstoreimpl_FetchImageSignatures(t *testing.T) {
 				},
 				rekorURL: rekorDefaultURL(),
 			},
-			args: args{
-				imageName: "docker-registry.com/some/image@sha256:4fb2054478353fd8d514056d1745b3a9eef066deadda4b90967af7ca65ce6505",
-			},
+			imageName: "docker-registry.com/some/image@sha256:4fb2054478353fd8d514056d1745b3a9eef066deadda4b90967af7ca65ce6505",
 			wantedFetchArguments: fetchFunctionArguments{
 				ref:     name.MustParseReference("docker-registry.com/some/image@sha256:4fb2054478353fd8d514056d1745b3a9eef066deadda4b90967af7ca65ce6505"),
 				options: nil,
@@ -405,7 +384,7 @@ func TestSigstoreimpl_FetchImageSignatures(t *testing.T) {
 				sigstorecache: NewCache(maximumAmountCache),
 				rekorURL:      tt.fields.rekorURL,
 			}
-			got, err := sigstore.FetchImageSignatures(context.Background(), tt.args.imageName)
+			got, err := sigstore.FetchImageSignatures(context.Background(), tt.imageName)
 			if tt.wantedErr != nil {
 				require.EqualError(t, err, tt.wantedErr.Error())
 			} else {
