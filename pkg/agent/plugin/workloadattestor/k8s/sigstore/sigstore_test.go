@@ -636,80 +636,54 @@ func TestSigstoreimpl_ExtractSelectorsFromSignatures(t *testing.T) {
 }
 
 func TestSigstoreimpl_ShouldSkipImage(t *testing.T) {
-	type fields struct {
-		skippedImages map[string]struct{}
-	}
-	type args struct {
-		imageID string
-	}
 	tests := []struct {
-		name      string
-		fields    fields
-		args      args
-		want      bool
-		wantedErr error
+		name          string
+		skippedImages map[string]struct{}
+		imageID       string
+		want          bool
+		wantedErr     error
 	}{
 		{
 			name: "skipping only image in list",
-			fields: fields{
-				skippedImages: map[string]struct{}{
-					"sha256:sampleimagehash": struct{}{},
-				},
+			skippedImages: map[string]struct{}{
+				"sha256:sampleimagehash": struct{}{},
 			},
-			args: args{
-				imageID: "sha256:sampleimagehash",
-			},
-			want: true,
+			imageID: "sha256:sampleimagehash",
+			want:    true,
 		},
 		{
 			name: "skipping image in list",
-			fields: fields{
-				skippedImages: map[string]struct{}{
-					"sha256:sampleimagehash":  struct{}{},
-					"sha256:sampleimagehash2": struct{}{},
-					"sha256:sampleimagehash3": struct{}{},
-				},
+			skippedImages: map[string]struct{}{
+				"sha256:sampleimagehash":  struct{}{},
+				"sha256:sampleimagehash2": struct{}{},
+				"sha256:sampleimagehash3": struct{}{},
 			},
-			args: args{
-				imageID: "sha256:sampleimagehash2",
-			},
-			want: true,
+			imageID: "sha256:sampleimagehash2",
+			want:    true,
 		},
 		{
 			name: "image not in list",
-			fields: fields{
-				skippedImages: map[string]struct{}{
-					"sha256:sampleimagehash":  struct{}{},
-					"sha256:sampleimagehash3": struct{}{},
-				},
+			skippedImages: map[string]struct{}{
+				"sha256:sampleimagehash":  struct{}{},
+				"sha256:sampleimagehash3": struct{}{},
 			},
-			args: args{
-				imageID: "sha256:sampleimagehash2",
-			},
-			want: false,
+			imageID: "sha256:sampleimagehash2",
+			want:    false,
 		},
 		{
-			name: "empty skip list",
-			fields: fields{
-				skippedImages: nil,
-			},
-			args: args{
-				imageID: "sha256:sampleimagehash",
-			},
-			want: false,
+			name:          "empty skip list",
+			skippedImages: nil,
+			imageID:       "sha256:sampleimagehash",
+			want:          false,
 		},
 		{
 			name: "empty imageID",
-			fields: fields{
-				skippedImages: map[string]struct{}{
-					"sha256:sampleimagehash":  struct{}{},
-					"sha256:sampleimagehash2": struct{}{},
-					"sha256:sampleimagehash3": struct{}{},
-				},
+			skippedImages: map[string]struct{}{
+				"sha256:sampleimagehash":  struct{}{},
+				"sha256:sampleimagehash2": struct{}{},
+				"sha256:sampleimagehash3": struct{}{},
 			},
-			args: args{
-				imageID: "",
-			},
+			imageID:   "",
 			want:      false,
 			wantedErr: errors.New("image ID is empty"),
 		},
@@ -717,9 +691,9 @@ func TestSigstoreimpl_ShouldSkipImage(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			sigstore := sigstoreImpl{
-				skippedImages: tt.fields.skippedImages,
+				skippedImages: tt.skippedImages,
 			}
-			got, err := sigstore.ShouldSkipImage(tt.args.imageID)
+			got, err := sigstore.ShouldSkipImage(tt.imageID)
 			if tt.wantedErr != nil {
 				require.EqualError(t, err, tt.wantedErr.Error())
 			} else {
@@ -731,49 +705,34 @@ func TestSigstoreimpl_ShouldSkipImage(t *testing.T) {
 }
 
 func TestSigstoreimpl_AddSkippedImage(t *testing.T) {
-	type fields struct {
-		verifyFunction             func(context context.Context, ref name.Reference, co *cosign.CheckOpts) ([]oci.Signature, bool, error)
-		fetchImageManifestFunction func(ref name.Reference, options ...remote.Option) (*remote.Descriptor, error)
-		skippedImages              map[string]struct{}
-	}
-	type args struct {
-		imageID []string
-	}
+
 	tests := []struct {
-		name   string
-		fields fields
-		args   args
-		want   map[string]struct{}
+		name          string
+		skippedImages map[string]struct{}
+		imageID       []string
+		want          map[string]struct{}
 	}{
 		{
-			name: "add skipped image to empty map",
-			args: args{
-				imageID: []string{"sha256:sampleimagehash"},
-			},
+			name:    "add skipped image to empty map",
+			imageID: []string{"sha256:sampleimagehash"},
 			want: map[string]struct{}{
 				"sha256:sampleimagehash": struct{}{},
 			},
 		},
 		{
 			name: "add skipped image",
-			fields: fields{
-				skippedImages: map[string]struct{}{
-					"sha256:sampleimagehash1": struct{}{},
-				},
+			skippedImages: map[string]struct{}{
+				"sha256:sampleimagehash1": struct{}{},
 			},
-			args: args{
-				imageID: []string{"sha256:sampleimagehash"},
-			},
+			imageID: []string{"sha256:sampleimagehash"},
 			want: map[string]struct{}{
 				"sha256:sampleimagehash":  struct{}{},
 				"sha256:sampleimagehash1": struct{}{},
 			},
 		},
 		{
-			name: "add a list of skipped images to empty map",
-			args: args{
-				imageID: []string{"sha256:sampleimagehash", "sha256:sampleimagehash1"},
-			},
+			name:    "add a list of skipped images to empty map",
+			imageID: []string{"sha256:sampleimagehash", "sha256:sampleimagehash1"},
 			want: map[string]struct{}{
 				"sha256:sampleimagehash":  struct{}{},
 				"sha256:sampleimagehash1": struct{}{},
@@ -781,14 +740,10 @@ func TestSigstoreimpl_AddSkippedImage(t *testing.T) {
 		},
 		{
 			name: "add a list of skipped images to a existing map",
-			fields: fields{
-				skippedImages: map[string]struct{}{
-					"sha256:sampleimagehash": struct{}{},
-				},
+			skippedImages: map[string]struct{}{
+				"sha256:sampleimagehash": struct{}{},
 			},
-			args: args{
-				imageID: []string{"sha256:sampleimagehash1", "sha256:sampleimagehash2"},
-			},
+			imageID: []string{"sha256:sampleimagehash1", "sha256:sampleimagehash2"},
 			want: map[string]struct{}{
 				"sha256:sampleimagehash":  struct{}{},
 				"sha256:sampleimagehash1": struct{}{},
@@ -799,13 +754,9 @@ func TestSigstoreimpl_AddSkippedImage(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			sigstore := sigstoreImpl{
-				functionHooks: sigstoreFunctionHooks{
-					verifyFunction:             tt.fields.verifyFunction,
-					fetchImageManifestFunction: tt.fields.fetchImageManifestFunction,
-				},
-				skippedImages: tt.fields.skippedImages,
+				skippedImages: tt.skippedImages,
 			}
-			sigstore.AddSkippedImage(tt.args.imageID)
+			sigstore.AddSkippedImage(tt.imageID)
 			require.Equal(t, sigstore.skippedImages, tt.want)
 		})
 	}
