@@ -805,15 +805,11 @@ func TestSigstoreimpl_ValidateImage(t *testing.T) {
 	type fields struct {
 		verifyFunction             verifyFunctionBinding
 		fetchImageManifestFunction fetchFunctionBinding
-		skippedImages              map[string]struct{}
-	}
-	type args struct {
-		ref name.Reference
 	}
 	tests := []struct {
 		name                  string
 		fields                fields
-		args                  args
+		ref                   name.Reference
 		wantedFetchArguments  fetchFunctionArguments
 		wantedVerifyArguments verifyFunctionArguments
 		wantedErr             error
@@ -826,9 +822,7 @@ func TestSigstoreimpl_ValidateImage(t *testing.T) {
 					Manifest: []byte(`sometext`),
 				}, nil),
 			},
-			args: args{
-				ref: name.MustParseReference("example.com/sampleimage@sha256:5fb2054478353fd8d514056d1745b3a9eef066deadda4b90967af7ca65ce6505"),
-			},
+			ref: name.MustParseReference("example.com/sampleimage@sha256:5fb2054478353fd8d514056d1745b3a9eef066deadda4b90967af7ca65ce6505"),
 			wantedFetchArguments: fetchFunctionArguments{
 				ref:     name.MustParseReference("example.com/sampleimage@sha256:5fb2054478353fd8d514056d1745b3a9eef066deadda4b90967af7ca65ce6505"),
 				options: nil,
@@ -841,9 +835,7 @@ func TestSigstoreimpl_ValidateImage(t *testing.T) {
 				verifyFunction:             createNilVerifyFunction(),
 				fetchImageManifestFunction: createFetchFunction(nil, errors.New("fetch error 123")),
 			},
-			args: args{
-				ref: name.MustParseReference("example.com/sampleimage@sha256:5fb2054478353fd8d514056d1745b3a9eef066deadda4b90967af7ca65ce6505"),
-			},
+			ref: name.MustParseReference("example.com/sampleimage@sha256:5fb2054478353fd8d514056d1745b3a9eef066deadda4b90967af7ca65ce6505"),
 			wantedFetchArguments: fetchFunctionArguments{
 				ref:     name.MustParseReference("example.com/sampleimage@sha256:5fb2054478353fd8d514056d1745b3a9eef066deadda4b90967af7ca65ce6505"),
 				options: nil,
@@ -858,9 +850,7 @@ func TestSigstoreimpl_ValidateImage(t *testing.T) {
 					Manifest: nil,
 				}, nil),
 			},
-			args: args{
-				ref: name.MustParseReference("example.com/sampleimage@sha256:5fb2054478353fd8d514056d1745b3a9eef066deadda4b90967af7ca65ce6505"),
-			},
+			ref: name.MustParseReference("example.com/sampleimage@sha256:5fb2054478353fd8d514056d1745b3a9eef066deadda4b90967af7ca65ce6505"),
 			wantedFetchArguments: fetchFunctionArguments{
 				ref:     name.MustParseReference("example.com/sampleimage@sha256:5fb2054478353fd8d514056d1745b3a9eef066deadda4b90967af7ca65ce6505"),
 				options: nil,
@@ -875,9 +865,7 @@ func TestSigstoreimpl_ValidateImage(t *testing.T) {
 					Manifest: []byte("f0c62edf734ff52ee830c9eeef2ceefad94f7f089706d170f8d9dc64befb57cc"),
 				}, nil),
 			},
-			args: args{
-				ref: name.MustParseReference("example.com/sampleimage@sha256:f037cc8ec4cd38f95478773741fdecd48d721a527d19013031692edbf95fae69"),
-			},
+			ref: name.MustParseReference("example.com/sampleimage@sha256:f037cc8ec4cd38f95478773741fdecd48d721a527d19013031692edbf95fae69"),
 			wantedFetchArguments: fetchFunctionArguments{
 				ref:     name.MustParseReference("example.com/sampleimage@sha256:f037cc8ec4cd38f95478773741fdecd48d721a527d19013031692edbf95fae69"),
 				options: nil,
@@ -894,10 +882,9 @@ func TestSigstoreimpl_ValidateImage(t *testing.T) {
 					verifyFunction:             tt.fields.verifyFunction(t, &verifyArguments),
 					fetchImageManifestFunction: tt.fields.fetchImageManifestFunction(t, &fetchArguments),
 				},
-				skippedImages: tt.fields.skippedImages,
 			}
 
-			err := sigstore.ValidateImage(tt.args.ref)
+			err := sigstore.ValidateImage(tt.ref)
 			if tt.wantedErr != nil {
 				require.EqualError(t, err, tt.wantedErr.Error())
 			} else {
