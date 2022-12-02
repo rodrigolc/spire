@@ -1696,8 +1696,8 @@ func TestSigstoreimpl_AttestContainerSignatures(t *testing.T) {
 		RootCerts:         rootCerts,
 		IntermediateCerts: intermediateCerts,
 	}
-	var emptyURLCheckOpts *cosign.CheckOpts = nil
-	var emptyError error = errors.New("rekor URL host is empty")
+	var emptyURLCheckOpts *cosign.CheckOpts
+	emptyError := errors.New("rekor URL host is empty")
 
 	tests := []struct {
 		name                     string
