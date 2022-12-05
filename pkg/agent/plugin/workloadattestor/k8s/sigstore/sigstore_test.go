@@ -705,7 +705,6 @@ func TestSigstoreimpl_ShouldSkipImage(t *testing.T) {
 }
 
 func TestSigstoreimpl_AddSkippedImage(t *testing.T) {
-
 	tests := []struct {
 		name          string
 		skippedImages map[string]struct{}
@@ -763,7 +762,6 @@ func TestSigstoreimpl_AddSkippedImage(t *testing.T) {
 }
 
 func TestSigstoreimpl_ClearSkipList(t *testing.T) {
-
 	tests := []struct {
 		skippedImages map[string]struct{}
 		name          string
