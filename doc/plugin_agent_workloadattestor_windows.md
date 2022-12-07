@@ -39,7 +39,7 @@ Defenses against this are:
   The workload API does not yet support rate limiting, but when it does, this attack can
   be mitigated by using rate limiting in conjunction with non-negative `workload_size_limit`.
 
-### Notes
+#### Notes
 
 - An enabled group in a token is a group that has the [SE_GROUP_ENABLED](https://docs.microsoft.com/en-us/windows/win32/secauthz/sid-attributes-in-an-access-token) attribute.
 
