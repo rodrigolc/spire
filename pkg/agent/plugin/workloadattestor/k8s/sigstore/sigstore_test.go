@@ -6,19 +6,13 @@ package sigstore
 import (
 	"bytes"
 	"context"
-	"crypto"
-	"crypto/ecdsa"
-	"crypto/elliptic"
-	"crypto/rand"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/asn1"
 	"errors"
 	"fmt"
-	"math/big"
 	"net/url"
 	"testing"
-	"time"
 
 	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
@@ -40,38 +34,6 @@ const (
 var (
 	OIDCIssuerOID = asn1.ObjectIdentifier{1, 3, 6, 1, 4, 1, 57264, 1, 1}
 )
-
-func createCertificate(template *x509.Certificate, parent *x509.Certificate, pub interface{}, priv crypto.Signer) (*x509.Certificate, error) {
-	certBytes, err := x509.CreateCertificate(rand.Reader, template, parent, pub, priv)
-	if err != nil {
-		return nil, err
-	}
-
-	return x509.ParseCertificate(certBytes)
-}
-
-func GenerateRootCa() (*x509.Certificate, *ecdsa.PrivateKey, error) {
-	rootTemplate := &x509.Certificate{
-		SerialNumber: big.NewInt(1),
-		Subject: pkix.Name{
-			CommonName:   "sigstore",
-			Organization: []string{"sigstore.dev"},
-		},
-		NotBefore:             time.Now().Add(-5 * time.Minute),
-		NotAfter:              time.Now().Add(5 * time.Hour),
-		KeyUsage:              x509.KeyUsageCertSign | x509.KeyUsageCRLSign,
-		BasicConstraintsValid: true,
-		IsCA:                  true,
-	}
-
-	priv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	cert, err := createCertificate(rootTemplate, rootTemplate, &priv.PublicKey, priv)
-	return cert, priv, err
-}
 
 func TestNew(t *testing.T) {
 	newcache := NewCache(maximumAmountCache)
@@ -115,7 +77,8 @@ func TestSigstoreimpl_FetchImageSignatures(t *testing.T) {
 		rekorURL         url.URL
 	}
 
-	defaultCheckOpts, _ := defaultCheckOptsFunction(rekorDefaultURL())
+	defaultCheckOpts, err := defaultCheckOptsFunction(rekorDefaultURL())
+	require.NoError(t, err)
 	emptyURLCheckOpts, emptyError := defaultCheckOptsFunction(url.URL{})
 	require.Nil(t, emptyURLCheckOpts)
 	require.EqualError(t, emptyError, "rekor URL host is empty")
