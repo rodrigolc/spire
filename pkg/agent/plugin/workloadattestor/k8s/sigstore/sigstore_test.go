@@ -779,7 +779,7 @@ func TestSigstoreimpl_ShouldSkipImage(t *testing.T) {
 		{
 			name: "skipping only image in list",
 			skippedImages: map[string]struct{}{
-				"sha256:sampleimagehash": struct{}{},
+				"sha256:sampleimagehash": {},
 			},
 			imageID: "sha256:sampleimagehash",
 			want:    true,
@@ -787,9 +787,9 @@ func TestSigstoreimpl_ShouldSkipImage(t *testing.T) {
 		{
 			name: "skipping image in list",
 			skippedImages: map[string]struct{}{
-				"sha256:sampleimagehash":  struct{}{},
-				"sha256:sampleimagehash2": struct{}{},
-				"sha256:sampleimagehash3": struct{}{},
+				"sha256:sampleimagehash":  {},
+				"sha256:sampleimagehash2": {},
+				"sha256:sampleimagehash3": {},
 			},
 			imageID: "sha256:sampleimagehash2",
 			want:    true,
@@ -797,8 +797,8 @@ func TestSigstoreimpl_ShouldSkipImage(t *testing.T) {
 		{
 			name: "image not in list",
 			skippedImages: map[string]struct{}{
-				"sha256:sampleimagehash":  struct{}{},
-				"sha256:sampleimagehash3": struct{}{},
+				"sha256:sampleimagehash":  {},
+				"sha256:sampleimagehash3": {},
 			},
 			imageID: "sha256:sampleimagehash2",
 			want:    false,
@@ -812,9 +812,9 @@ func TestSigstoreimpl_ShouldSkipImage(t *testing.T) {
 		{
 			name: "empty imageID",
 			skippedImages: map[string]struct{}{
-				"sha256:sampleimagehash":  struct{}{},
-				"sha256:sampleimagehash2": struct{}{},
-				"sha256:sampleimagehash3": struct{}{},
+				"sha256:sampleimagehash":  {},
+				"sha256:sampleimagehash2": {},
+				"sha256:sampleimagehash3": {},
 			},
 			imageID:   "",
 			want:      false,
@@ -848,38 +848,38 @@ func TestSigstoreimpl_AddSkippedImage(t *testing.T) {
 			name:    "add skipped image to empty map",
 			imageID: []string{"sha256:sampleimagehash"},
 			want: map[string]struct{}{
-				"sha256:sampleimagehash": struct{}{},
+				"sha256:sampleimagehash": {},
 			},
 		},
 		{
 			name: "add skipped image",
 			skippedImages: map[string]struct{}{
-				"sha256:sampleimagehash1": struct{}{},
+				"sha256:sampleimagehash1": {},
 			},
 			imageID: []string{"sha256:sampleimagehash"},
 			want: map[string]struct{}{
-				"sha256:sampleimagehash":  struct{}{},
-				"sha256:sampleimagehash1": struct{}{},
+				"sha256:sampleimagehash":  {},
+				"sha256:sampleimagehash1": {},
 			},
 		},
 		{
 			name:    "add a list of skipped images to empty map",
 			imageID: []string{"sha256:sampleimagehash", "sha256:sampleimagehash1"},
 			want: map[string]struct{}{
-				"sha256:sampleimagehash":  struct{}{},
-				"sha256:sampleimagehash1": struct{}{},
+				"sha256:sampleimagehash":  {},
+				"sha256:sampleimagehash1": {},
 			},
 		},
 		{
 			name: "add a list of skipped images to a existing map",
 			skippedImages: map[string]struct{}{
-				"sha256:sampleimagehash": struct{}{},
+				"sha256:sampleimagehash": {},
 			},
 			imageID: []string{"sha256:sampleimagehash1", "sha256:sampleimagehash2"},
 			want: map[string]struct{}{
-				"sha256:sampleimagehash":  struct{}{},
-				"sha256:sampleimagehash1": struct{}{},
-				"sha256:sampleimagehash2": struct{}{},
+				"sha256:sampleimagehash":  {},
+				"sha256:sampleimagehash1": {},
+				"sha256:sampleimagehash2": {},
 			},
 		},
 	}
@@ -902,14 +902,14 @@ func TestSigstoreimpl_ClearSkipList(t *testing.T) {
 		{
 			name: "clear single image in map",
 			skippedImages: map[string]struct{}{
-				"sha256:sampleimagehash": struct{}{},
+				"sha256:sampleimagehash": {},
 			},
 		},
 		{
 			name: "clear multiple images map",
 			skippedImages: map[string]struct{}{
-				"sha256:sampleimagehash":  struct{}{},
-				"sha256:sampleimagehash1": struct{}{},
+				"sha256:sampleimagehash":  {},
+				"sha256:sampleimagehash1": {},
 			},
 		},
 		{
@@ -1660,7 +1660,7 @@ func TestSigstoreimpl_AttestContainerSignatures(t *testing.T) {
 					checkOptsBinding: createNilCheckOptsFunction(),
 				},
 				skippedImages: map[string]struct{}{
-					"docker-registry.com/some/image@sha256:5fb2054478353fd8d514056d1745b3a9eef066deadda4b90967af7ca65ce6505": struct{}{},
+					"docker-registry.com/some/image@sha256:5fb2054478353fd8d514056d1745b3a9eef066deadda4b90967af7ca65ce6505": {},
 				},
 				rekorURL: rekorDefaultURL(),
 			},
